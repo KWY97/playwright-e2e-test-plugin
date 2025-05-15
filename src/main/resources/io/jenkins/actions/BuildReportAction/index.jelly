@@ -1,0 +1,14 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="lib/layout">
+    <l:layout permission="READ">
+        <l:main-panel>
+            <h1>MCP Test Result</h1>
+            <dl>
+                <dt>스크립트 경로</dt><dd>${it.scriptPath}</dd>
+                <dt>상태</dt><dd>${it.status}</dd>
+                <dt>실행 시각</dt><dd>${it.timestamp}</dd>
+            </dl>
+            <a href="../">◀️ 뒤로가기</a>  <!-- 한 단계 위(빌드 페이지)로 -->
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

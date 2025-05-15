@@ -1,0 +1,19 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
+    <j:choose>
+        <j:when test="${build}">
+            <h2>리포트 미리보기: ${build}</h2>
+            <div style="border:1px solid #ccc; margin-top:10px;">
+                <iframe
+                        src="${rootURL}/${it.urlName}/report?build=${build}"
+                        width="100%"
+                        height="800px"
+                        frameborder="0"
+                ></iframe>
+            </div>
+        </j:when>
+        <j:otherwise>
+            <p>먼저 왼쪽에서 빌드를 선택하세요.</p>
+        </j:otherwise>
+    </j:choose>
+</j:jelly>

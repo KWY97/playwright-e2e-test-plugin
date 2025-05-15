@@ -1,0 +1,222 @@
+<?jelly escape-by-default='true' encoding='UTF-8'?>
+<j:jelly xmlns:j="jelly:core"
+         xmlns:l="lib/layout"
+         xmlns:f="/lib/form">
+
+    <l:layout permission="ADMINISTER">
+        <l:main-panel>
+            <!-- ● CSS 스타일 정의 -->
+            <style>
+                /* 전체 폼 패딩 */
+                .pane, .f:form {
+                padding: 16px;
+                }
+                /* 시나리오 블록 */
+                .scenario {
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                background-color: #fafafa;
+                padding: 16px;
+                margin-bottom: 16px;
+                }
+                .scenario > div {
+                margin-bottom: 12px;
+                }
+                /* 단계(스텝) 리스트 */
+                .steps > div {
+                display: flex;
+                align-items: center;
+                margin-bottom: 8px;
+                }
+                /* 라벨과 인풋 정렬 */
+                label {
+                flex: 1;
+                font-weight: 500;
+                }
+                input.sc-title,
+                input.st-text {
+                width: calc(100% - 24px);
+                padding: 6px 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                margin-left: 8px;
+                }
+                /* 버튼 공통 */
+                button {
+                background-color: #007acc;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                cursor: pointer;
+                font-size: 0.9em;
+                margin-right: 8px;
+                }
+                button:hover {
+                background-color: #005f99;
+                }
+                /* 삭제 버튼 강조 */
+                .del-step,
+                .del-scenario {
+                background-color: #e74c3c;
+                }
+                .del-step:hover,
+                .del-scenario:hover {
+                background-color: #c0392b;
+                }
+                /* "+ 시나리오 추가" 버튼 */
+                #addScenario {
+                display: block;
+                margin: 24px 0;
+                background-color: #28a745;
+                }
+                #addScenario:hover {
+                background-color: #218838;
+                }
+                /* 저장 버튼 */
+                button[type="button"][onclick] {
+                background-color: #0069d9;
+                margin-top: 8px;
+                }
+                button[type="button"][onclick]:hover {
+                background-color: #0053ba;
+                }
+            </style>
+
+            <!-- ① 서버 모델 로드 -->
+            <j:set var="m" value="${it.getIt(request.getParameter('script'))}"/>
+
+            <h1 style="margin-bottom:24px;">${m.title ?: '새 스크립트'}</h1>
+
+            <f:form method="post" action="save">
+                <!-- ② 제목 -->
+                <f:entry title="스크립트 제목">
+                    <f:textbox name="title"
+                               id="scriptTitle"
+                               style="width:100%;"
+                               value="${m.title}"/>
+                </f:entry>
+
+                <!-- ③ 숨김 템플릿 -->
+                <div id="scenario-template" style="display:none">
+                    <div class="scenario">
+                        <div>
+                            <label>시나리오 제목:
+                                <input type="text" class="sc-title"/>
+                            </label>
+                        </div>
+                        <div class="steps">
+                            <div>
+                                <label>스텝:
+                                    <input type="text" class="st-text"/>
+                                </label>
+                                <button type="button" class="del-step">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-step">+ 스텝 추가</button>
+                        <button type="button" class="del-scenario">✕ 시나리오 삭제</button>
+                    </div>
+                </div>
+
+                <!-- ④ 기존 시나리오 렌더 -->
+                <div id="editor">
+                    <j:forEach items="${m.scenarios}" var="sc">
+                        <div class="scenario">
+                            <div>
+                                <label>시나리오 제목:
+                                    <input type="text" class="sc-title" value="${sc.title}"/>
+                                </label>
+                            </div>
+                            <div class="steps">
+                                <j:forEach items="${sc.steps}" var="st">
+                                    <div>
+                                        <label>스텝:
+                                            <input type="text" class="st-text" value="${st}"/>
+                                        </label>
+                                        <button type="button" class="del-step">✕</button>
+                                    </div>
+                                </j:forEach>
+                            </div>
+                            <button type="button" class="add-step">+ 스텝 추가</button>
+                            <button type="button" class="del-scenario">✕ 시나리오 삭제</button>
+                        </div>
+                    </j:forEach>
+                </div>
+
+                <!-- ⑤ 새 시나리오 추가 -->
+                <button type="button" id="addScenario">+ 시나리오 추가</button>
+
+                <!-- ⑥ 저장용 JSON 필드 -->
+                <input type="hidden" name="jsonData" id="jsonData"/>
+
+                <!-- ⑦ 저장 버튼 -->
+                <button type="button" onclick="prepareSave(); this.form.submit();">저장</button>
+            </f:form>
+
+            <!-- ⑧ 서버 모델을 JSON으로 주입 -->
+            <script id="modelData" type="application/json">
+                ${m.toJson()}
+            </script>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const jsonStr = document.getElementById('modelData').textContent.trim();
+                    let existingModel = {};
+                    try { existingModel = JSON.parse(jsonStr); } catch(e) { console.error(e); }
+
+                    const editor   = document.getElementById('editor');
+                    const template = document.getElementById('scenario-template').querySelector('.scenario');
+
+                    function bindStep(stepElem) {
+                        stepElem.querySelector('.del-step')
+                                .addEventListener('click', () => stepElem.remove());
+                    }
+
+                    function bindScenario(scn) {
+                        scn.querySelector('.add-step')
+                                .addEventListener('click', () => {
+                                    const stepsDiv = scn.querySelector('.steps');
+                                    const newStep  = template.cloneNode(true)
+                                            .querySelector('.steps > div')
+                                            .cloneNode(true);
+                                    newStep.querySelector('input.st-text').value = '';
+                                    bindStep(newStep);
+                                    stepsDiv.appendChild(newStep);
+                                });
+                        scn.querySelector('.del-scenario')
+                                .addEventListener('click', () => scn.remove());
+                        scn.querySelectorAll('.steps > div').forEach(bindStep);
+                    }
+
+                    editor.querySelectorAll('.scenario').forEach(bindScenario);
+
+                    document.getElementById('addScenario')
+                            .addEventListener('click', () => {
+                                const newScn = template.cloneNode(true);
+                                newScn.querySelector('input.sc-title').value = '';
+                                newScn.querySelectorAll('input.st-text').forEach(i => i.value = '');
+                                editor.appendChild(newScn);
+                                bindScenario(newScn);
+                            });
+
+                    window.prepareSave = function() {
+                        const model = {
+                            title: document.getElementById('scriptTitle').value,
+                            scenarios: []
+                        };
+                        editor.querySelectorAll('.scenario').forEach(scn => {
+                            const title = scn.querySelector('input.sc-title').value;
+                            const steps = Array.from(
+                                    scn.querySelectorAll('input.st-text')
+                            ).map(i => i.value);
+                            model.scenarios.push({ title, steps });
+                        });
+                        document.getElementById('jsonData').value =
+                                JSON.stringify(model, null, 2);
+                    };
+                });
+            </script>
+
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

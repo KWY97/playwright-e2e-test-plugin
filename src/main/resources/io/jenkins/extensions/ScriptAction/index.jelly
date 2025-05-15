@@ -1,0 +1,23 @@
+<?jelly escape-by-default='true' encoding='UTF-8'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="lib/layout">
+    <l:layout>
+        <l:main-panel>
+            <h1>스크립트 목록</h1>
+            <!-- 새 스크립트 작성 버튼: /jenkins/scripts/input 으로 이동 -->
+            <a href="input" class="model-link">+ 새 스크립트</a>
+            <table class="pane">
+                <tr><th>제목</th><th>수정일</th></tr>
+                <!-- it.scripts 에 담긴 ScriptEntry 리스트 반복 -->
+                <j:forEach items="${it.scripts}" var="s">
+                    <tr>
+                        <td>
+                            <!-- 클릭 시 ?script=파일명 파라미터로 전달 -->
+                            <a href="input?script=${s.fileName}">${s.title}</a>
+                        </td>
+                        <td>${s.modified}</td>
+                    </tr>
+                </j:forEach>
+            </table>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
