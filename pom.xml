@@ -9,7 +9,6 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <!-- 최신 plugin‑pom 5.10 -->
     <version>5.10</version>
     <relativePath/>
   </parent>
@@ -20,11 +19,15 @@
   <packaging>hpi</packaging>
 
   <name>Playwright E2E Test Plugin</name>
-  <!-- description 추가 -->
   <description>Provides automated E2E testing capabilities using Playwright and MCP.</description>
   <url>https://github.com/ssafy/plugin</url>
 
-  <!-- licenses 섹션 추가 -->
+  <scm>
+      <connection>scm:git:git://github.com/KWY97/playwright-e2e-test.git</connection>
+      <developerConnection>scm:git:git@github.com:KWY97/playwright-e2e-test.git</developerConnection>
+      <url>https://github.com/KWY97/playwright-e2e-test</url>
+  </scm>
+
   <licenses>
     <license>
       <name>MIT License</name>
@@ -34,7 +37,6 @@
 
   <properties>
     <java.level>17</java.level>
-    <!-- 주간(weekly) 최신 릴리스: 2.492 -->
     <jenkins.version>2.492</jenkins.version>
     <revision>1.0</revision>
     <changelist>-SNAPSHOT</changelist>
@@ -43,7 +45,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- 플러그인 BOM: 주간(bom-weekly) 2.462.x -->
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.462.x</artifactId>
@@ -52,7 +53,6 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- Core BOM: Jenkins 코어와 핵심 플러그인 관리 -->
       <dependency>
         <groupId>org.jenkins-ci.main</groupId>
         <artifactId>jenkins-bom</artifactId>
@@ -61,14 +61,12 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- Guava 버전 강제 고정 -->
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>33.4.8-jre</version>
       </dependency>
 
-      <!-- ErrorProne annotations -->
       <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
@@ -107,7 +105,6 @@
   </pluginRepositories>
 
   <dependencies>
-    <!-- Pipeline Step API, Core API, CPS, Job 등은 BOM에서 관리되므로 버전 제거 -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
@@ -120,7 +117,6 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
     </dependency>
-    <!--     Jenkins Credentials 플러그인: FileCredentials 를 사용하기 위해 추가 -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
@@ -128,14 +124,12 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <!-- 선언이 필요하다면, HPI 타입 및 provided 범위 명시 가능 -->
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
     </dependency>
 
-    <!-- Jackson 버전 통일 -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
