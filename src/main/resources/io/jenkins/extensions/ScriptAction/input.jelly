@@ -4,85 +4,9 @@
          xmlns:f="/lib/form">
 
     <l:layout permission="ADMINISTER">
+        <l:CSS src="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.css" />
+        <l:JS src="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.js" />
         <l:main-panel>
-            <!-- ● CSS 스타일 정의 -->
-            <style>
-                /* 전체 폼 패딩 */
-                .pane, .f:form {
-                padding: 16px;
-                }
-                /* 시나리오 블록 */
-                .scenario {
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                background-color: #fafafa;
-                padding: 16px;
-                margin-bottom: 16px;
-                }
-                .scenario > div {
-                margin-bottom: 12px;
-                }
-                /* 단계(스텝) 리스트 */
-                .steps > div {
-                display: flex;
-                align-items: center;
-                margin-bottom: 8px;
-                }
-                /* 라벨과 인풋 정렬 */
-                label {
-                flex: 1;
-                font-weight: 500;
-                }
-                input.sc-title,
-                input.st-text {
-                width: calc(100% - 24px);
-                padding: 6px 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                margin-left: 8px;
-                }
-                /* 버튼 공통 */
-                button {
-                background-color: #007acc;
-                color: #fff;
-                border: none;
-                border-radius: 4px;
-                padding: 6px 12px;
-                cursor: pointer;
-                font-size: 0.9em;
-                margin-right: 8px;
-                }
-                button:hover {
-                background-color: #005f99;
-                }
-                /* 삭제 버튼 강조 */
-                .del-step,
-                .del-scenario {
-                background-color: #e74c3c;
-                }
-                .del-step:hover,
-                .del-scenario:hover {
-                background-color: #c0392b;
-                }
-                /* "+ 시나리오 추가" 버튼 */
-                #addScenario {
-                display: block;
-                margin: 24px 0;
-                background-color: #28a745;
-                }
-                #addScenario:hover {
-                background-color: #218838;
-                }
-                /* 저장 버튼 */
-                button[type="button"][onclick] {
-                background-color: #0069d9;
-                margin-top: 8px;
-                }
-                button[type="button"][onclick]:hover {
-                background-color: #0053ba;
-                }
-            </style>
-
             <!-- ① 서버 모델 로드 -->
             <j:set var="m" value="${it.getIt(request.getParameter('script'))}"/>
 
@@ -156,65 +80,6 @@
             <!-- ⑧ 서버 모델을 JSON으로 주입 -->
             <script id="modelData" type="application/json">
                 ${m.toJson()}
-            </script>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const jsonStr = document.getElementById('modelData').textContent.trim();
-                    let existingModel = {};
-                    try { existingModel = JSON.parse(jsonStr); } catch(e) { console.error(e); }
-
-                    const editor   = document.getElementById('editor');
-                    const template = document.getElementById('scenario-template').querySelector('.scenario');
-
-                    function bindStep(stepElem) {
-                        stepElem.querySelector('.del-step')
-                                .addEventListener('click', () => stepElem.remove());
-                    }
-
-                    function bindScenario(scn) {
-                        scn.querySelector('.add-step')
-                                .addEventListener('click', () => {
-                                    const stepsDiv = scn.querySelector('.steps');
-                                    const newStep  = template.cloneNode(true)
-                                            .querySelector('.steps > div')
-                                            .cloneNode(true);
-                                    newStep.querySelector('input.st-text').value = '';
-                                    bindStep(newStep);
-                                    stepsDiv.appendChild(newStep);
-                                });
-                        scn.querySelector('.del-scenario')
-                                .addEventListener('click', () => scn.remove());
-                        scn.querySelectorAll('.steps > div').forEach(bindStep);
-                    }
-
-                    editor.querySelectorAll('.scenario').forEach(bindScenario);
-
-                    document.getElementById('addScenario')
-                            .addEventListener('click', () => {
-                                const newScn = template.cloneNode(true);
-                                newScn.querySelector('input.sc-title').value = '';
-                                newScn.querySelectorAll('input.st-text').forEach(i => i.value = '');
-                                editor.appendChild(newScn);
-                                bindScenario(newScn);
-                            });
-
-                    window.prepareSave = function() {
-                        const model = {
-                            title: document.getElementById('scriptTitle').value,
-                            scenarios: []
-                        };
-                        editor.querySelectorAll('.scenario').forEach(scn => {
-                            const title = scn.querySelector('input.sc-title').value;
-                            const steps = Array.from(
-                                    scn.querySelectorAll('input.st-text')
-                            ).map(i => i.value);
-                            model.scenarios.push({ title, steps });
-                        });
-                        document.getElementById('jsonData').value =
-                                JSON.stringify(model, null, 2);
-                    };
-                });
             </script>
 
         </l:main-panel>

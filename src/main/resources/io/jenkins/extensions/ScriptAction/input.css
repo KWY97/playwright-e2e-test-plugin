@@ -1,0 +1,74 @@
+/* 전체 폼 패딩 */
+.pane, .f:form {
+padding: 16px;
+}
+/* 시나리오 블록 */
+.scenario {
+border: 1px solid #ddd;
+border-radius: 8px;
+background-color: #fafafa;
+padding: 16px;
+margin-bottom: 16px;
+}
+.scenario > div {
+margin-bottom: 12px;
+}
+/* 단계(스텝) 리스트 */
+.steps > div {
+display: flex;
+align-items: center;
+margin-bottom: 8px;
+}
+/* 라벨과 인풋 정렬 */
+label {
+flex: 1;
+font-weight: 500;
+}
+input.sc-title,
+input.st-text {
+width: calc(100% - 24px);
+padding: 6px 8px;
+border: 1px solid #ccc;
+border-radius: 4px;
+margin-left: 8px;
+}
+/* 버튼 공통 */
+button {
+background-color: #007acc;
+color: #fff;
+border: none;
+border-radius: 4px;
+padding: 6px 12px;
+cursor: pointer;
+font-size: 0.9em;
+margin-right: 8px;
+}
+button:hover {
+background-color: #005f99;
+}
+/* 삭제 버튼 강조 */
+.del-step,
+.del-scenario {
+background-color: #e74c3c;
+}
+.del-step:hover,
+.del-scenario:hover {
+background-color: #c0392b;
+}
+/* "+ 시나리오 추가" 버튼 */
+#addScenario {
+display: block;
+margin: 24px 0;
+background-color: #28a745;
+}
+#addScenario:hover {
+background-color: #218838;
+}
+/* 저장 버튼 */
+button[type="button"][onclick] {
+background-color: #0069d9;
+margin-top: 8px;
+}
+button[type="button"][onclick]:hover {
+background-color: #0053ba;
+}
