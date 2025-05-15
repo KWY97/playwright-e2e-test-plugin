@@ -14,18 +14,18 @@
   </parent>
 
   <groupId>io.jenkins.plugins</groupId>
-  <artifactId>playwright-e2e-test</artifactId>
+  <artifactId>playwright-e2e-test-plugin</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Playwright E2E Test Plugin</name>
   <description>Provides automated E2E testing capabilities using Playwright and MCP.</description>
-  <url>https://github.com/KWY97/playwright-e2e-test</url>
+  <url>https://github.com/KWY97/playwright-e2e-test-plugin</url>
 
   <scm>
-    <connection>scm:git:https://github.com/KWY97/playwright-e2e-test.git</connection>
-    <developerConnection>scm:git:https://github.com/KWY97/playwright-e2e-test.git</developerConnection>
-    <url>https://github.com/KWY97/playwright-e2e-test</url>
+    <connection>scm:git:https://github.com/KWY97/playwright-e2e-test-plugin.git</connection>
+    <developerConnection>scm:git:https://github.com/KWY97/playwright-e2e-test-plugin.git</developerConnection>
+    <url>https://github.com/KWY97/playwright-e2e-test-plugin</url>
     <tag>HEAD</tag>
   </scm>
 
