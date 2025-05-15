@@ -2,24 +2,24 @@
 
 ## Introduction
 
-이 플러그인은 Jenkins 환경에서 **Playwright MCP**를 활용하여 **자연어 스크립트 기반반 E2E(End-to-End) 자동화 테스트 파이프라인**을 구축하고 실행할 수 있도록 지원합니다.
+This plugin supports building and executing an **E2E (End-to-End) automated test pipeline based on natural language scripts** within the Jenkins environment using **Playwright MCP**.
 
-최근 LLM(Large Language Model) 및 MCP(Model Context Protocol) 기술의 발전과 함께, 전통적인 자동화 테스트 방식을 넘어서는 새로운 가능성이 열리고 있습니다. 본 플러그인은 Microsoft의 강력한 E2E 테스트 도구인 Playwright와 LLM을 결합하여, 개발자 및 QA 엔지니어가 보다 유연하게 자연어를 통한 자동화 테스트를 관리하고 실행할 수 있도록 돕습니다.
+With the recent advancements in LLM (Large Language Model) and MCP (Model Context Protocol) technologies, new possibilities are opening up beyond traditional automated testing methods. By combining Microsoft's powerful Playwright E2E test tool with LLMs, this plugin helps developers and QA engineers manage and execute automated tests more flexibly through natural language.
 
-이 플러그인을 사용하면 Jenkins CI/CD 파이프라인 내에서 테스트 스크립트를 쉽게 통합하고 실행할 수 있으며, 관리, 실행 결과 분석 등 자동화 테스트 프로세스의 효율성을 크게 향상시킬 수 있습니다. CI/CD에 자동화된 E2E 테스트를 도입하거나 고도화하려는 분들에게 유용합니다.
+Using this plugin, you can easily integrate and execute test scripts within your Jenkins CI/CD pipeline, significantly improving the efficiency of the automated testing process, including management and execution results analysis. It is useful for those looking to introduce or enhance automated E2E testing in their CI/CD pipelines.
 
 ## Getting started
 
-### 📦 사전 설치
+### 📦 Prerequisites
 
-다음 항목들이 설치되어 있어야 합니다:
+The following items must be installed:
 
 - Python 3.12
-- Node.js (최신 권장)
+- Node.js (latest recommended)
 
-### ⚙️ 환경 설정
+### ⚙️ Environment Setup
 
-- 플러그인 환경을 구성하세요
+- Configure the plugin environment
 
 ```bash
 set -e
@@ -41,23 +41,24 @@ curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
 apt install -y nodejs
 ```
 
-### .env 파일 생성
+### Create .env File
 
 ```
-LLM_PROVIDER={openai 혹은 anthropic}
-LLM_MODEL={사용할 모델}
-LLM_API_KEY={API 키}
+LLM_PROVIDER={openai or anthropic}
+LLM_MODEL={model to use}
+LLM_API_KEY={API key}
 ```
 
-- 지원 모델 목록:
-  **Claude:** claude-3-7-sonnet-latest, claude-3-5-sonnet-latest, claude-3-5-haiku-latest
-  **GPT:** gpt-4o, gpt-4o-mini
+- Supported Models:
 
-- .env 파일은 credential로 등록해야 합니다.
+**Claude:** claude-3-7-sonnet-latest, claude-3-5-sonnet-latest, claude-3-5-haiku-latest
+**GPT:** gpt-4o, gpt-4o-mini
 
-### Plugin 사용 방법
+- The .env file contents (especially LLM_API_KEY) should be registered as Jenkins credentials for secure storage and use within the plugin configuration.
 
-- Jenkins 파일 작성예시
+### How to Use the Plugin
+
+- Pipeline Example
 
 ```bash
 pipeline {
@@ -65,8 +66,8 @@ pipeline {
   stages {
     stage('CoreLogic') {
       steps {
-        // script와 함께 credentialsId 를 넘겨줍니다
-        runCoreLogic input: 'script 제목', envFileCredentialsId: 'credentialsId'
+        // Pass the script title and credentialsId
+        runCoreLogic input: 'script title', envFileCredentialsId: 'credentialsId'
         echo ">>> CoreLogic was invoked!"
       }
     }
@@ -76,8 +77,8 @@ pipeline {
 
 ## Issues
 
-Jenkins를 Docker Container로 실행하는 경우, Root 권한으로 실행해야 합니다.
-(그렇지 않으면 정상적인 실행이 되지 않습니다.)
+When running Jenkins as a Docker Container, it must be run with Root privileges.
+(Otherwise, normal execution will not be possible.)
 
 Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins.io/).
 
