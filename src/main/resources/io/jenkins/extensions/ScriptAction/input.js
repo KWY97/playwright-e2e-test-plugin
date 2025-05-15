@@ -53,4 +53,31 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('jsonData').value =
                 JSON.stringify(model, null, 2);
     };
+
+    const saveButton = document.getElementById('saveButton');
+    if (saveButton) {
+        saveButton.addEventListener('click', function() {
+            prepareSave();
+            // 버튼이 속한 form을 찾아 submit합니다.
+            // saveButton.form 또는 가장 가까운 form을 찾는 로직이 필요할 수 있습니다.
+            // 여기서는 saveButton이 f:form 내에 직접 있다고 가정하고,
+            // f:form이 실제 HTML form 태그로 렌더링된다고 가정합니다.
+            // 가장 확실한 방법은 form에 id를 부여하고 해당 id로 찾는 것입니다.
+            // 우선은 간단하게 button의 form 속성을 사용해봅니다.
+            if (this.form) {
+                this.form.submit();
+            } else {
+                // Fallback: DOM 트리에서 가장 가까운 form을 찾습니다.
+                let parent = this.parentNode;
+                while (parent && parent.tagName !== 'FORM') {
+                    parent = parent.parentNode;
+                }
+                if (parent) {
+                    parent.submit();
+                } else {
+                    console.error('Save button is not inside a form.');
+                }
+            }
+        });
+    }
 });

@@ -74,7 +74,7 @@
                 <input type="hidden" name="jsonData" id="jsonData"/>
 
                 <!-- ⑦ 저장 버튼 -->
-                <button type="button" onclick="prepareSave(); this.form.submit();">저장</button>
+                <button type="button" id="saveButton">저장</button>
             </f:form>
 
             <!-- ⑧ 서버 모델을 JSON으로 주입 -->
