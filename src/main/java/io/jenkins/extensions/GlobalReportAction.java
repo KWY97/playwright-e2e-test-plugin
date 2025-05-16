@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.Base64;
 
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
@@ -33,6 +32,8 @@ public class GlobalReportAction implements RootAction {
      * 마지막 '_' 뒤 숫자를 빌드 번호로 사용
      */
     public List<BuildEntry> getBuilds() {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        
         File rootDir = new File(Jenkins.get().getRootDir(), "results");
         if (!rootDir.isDirectory()) {
             return Collections.emptyList();
