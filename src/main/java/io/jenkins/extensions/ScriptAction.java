@@ -52,6 +52,11 @@ public class ScriptAction implements RootAction {
     @RequirePOST
     public void doSave(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException {
+        
+        // RequirePost는 CSRF 공격은 막지만 Jenkins 사용자 권한 확인을 안함
+        // Jenkins 사용자 권한 확인 위해 추가한 코드
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        
         // 한글 파라미터 깨짐 방지
         req.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
