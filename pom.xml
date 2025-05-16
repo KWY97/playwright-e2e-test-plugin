@@ -41,7 +41,7 @@
     <jenkins.version>${jenkins.baseline}</jenkins.version>
     <revision>1.0</revision>
     <changelist>-SNAPSHOT</changelist>
-    <maven-hpi-plugin.version>3.63</maven-hpi-plugin.version>
+    <maven-hpi-plugin.version>3.65</maven-hpi-plugin.version>
   </properties>
 
   <dependencyManagement>
