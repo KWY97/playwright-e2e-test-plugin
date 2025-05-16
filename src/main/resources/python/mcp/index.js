@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-const { createServer } = require('./lib');
+const { createServer } = require('./lib/index');
 module.exports = { createServer };

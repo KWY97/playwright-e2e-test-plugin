@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-console.log('▶ MCP CLI 실행됨: cli.js가 시작되었습니다');
 /**
  * Copyright (c) Microsoft Corporation.
  *
