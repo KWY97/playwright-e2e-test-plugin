@@ -75,6 +75,32 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             extractResources("python", pythonDir, listener);
             listener.getLogger().println("▶ 스크립트 추출 완료");
 
+            // 3.5) setup.sh CRLF 제거 (dos2unix 대체)
+            listener.getLogger().println("▶ setup.sh CRLF 제거 시작");
+            ProcessBuilder pbClean = new ProcessBuilder(
+                    "sed", "-i", "s/\\r$//", "setup.sh"
+            );
+            pbClean.directory(new File(pythonDir.getRemote()));
+            pbClean.redirectErrorStream(true);
+            try {
+                Process procClean = pbClean.start();
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(procClean.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        listener.getLogger().println(line);
+                    }
+                }
+                int exitCode = procClean.waitFor();
+                if (exitCode != 0) {
+                    listener.error("❌ setup.sh CRLF 제거 실패 (exit=" + exitCode + ")");
+                } else {
+                    listener.getLogger().println("✅ setup.sh CRLF 제거 완료");
+                }
+            } catch (IOException | InterruptedException e) {
+                listener.error("❌ setup.sh CRLF 제거 중 예외 발생: " + e.getMessage());
+            }
+
             // 4) 시나리오 파일 로드 (JENKINS_HOME/scripts)
             String scenarioName = step.getInput();
             if (!scenarioName.endsWith(".json")) scenarioName += ".json";

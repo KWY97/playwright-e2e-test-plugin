@@ -1,19 +1,32 @@
 <?jelly escape-by-default='true' encoding='UTF-8'?>
 <j:jelly xmlns:j="jelly:core"
-         xmlns:l="lib/layout"
+         xmlns:st="jelly:stapler"
+         xmlns:l="/lib/layout"
          xmlns:f="/lib/form">
 
     <l:layout permission="ADMINISTER">
-        <l:CSS src="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.css" />
-        <l:JS src="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.js" />
+        <!-- Jenkins 기본 head(crumb 메타 등)를 보존하고
+             추가 리소스만 덧붙이는 l:head -->
+        <l:head>
+            <!-- raw HTML로도 넣을 수 있습니다 -->
+            <link rel="stylesheet"
+                  href="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.css"
+                  type="text/css"/>
+            <script src="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.js"
+                    type="text/javascript"></script>
+        </l:head>
+
         <l:main-panel>
             <!-- ① 서버 모델 로드 -->
             <j:set var="m" value="${it.getIt(request.getParameter('script'))}"/>
 
-            <h1 style="margin-bottom:24px;">${m.title ?: '새 스크립트'}</h1>
+            <h1 style="margin-bottom:24px;">
+                ${m.title ?: '새 스크립트'}
+            </h1>
 
-            <f:form method="post" action="save">
-                <!-- ② 제목 -->
+            <!-- ② CSRF 크럼은 crumb="true" 에서 자동으로 처리 -->
+            <f:form method="post" action="save" crumb="true">
+                <!-- ③ 제목 -->
                 <f:entry title="스크립트 제목">
                     <f:textbox name="title"
                                id="scriptTitle"
@@ -21,7 +34,7 @@
                                value="${m.title}"/>
                 </f:entry>
 
-                <!-- ③ 숨김 템플릿 -->
+                <!-- ④ 숨김 템플릿 -->
                 <div id="scenario-template" style="display:none">
                     <div class="scenario">
                         <div>
@@ -42,7 +55,7 @@
                     </div>
                 </div>
 
-                <!-- ④ 기존 시나리오 렌더 -->
+                <!-- ⑤ 기존 시나리오 렌더 -->
                 <div id="editor">
                     <j:forEach items="${m.scenarios}" var="sc">
                         <div class="scenario">
@@ -67,21 +80,20 @@
                     </j:forEach>
                 </div>
 
-                <!-- ⑤ 새 시나리오 추가 -->
+                <!-- ⑥ 새 시나리오 추가 -->
                 <button type="button" id="addScenario">+ 시나리오 추가</button>
 
-                <!-- ⑥ 저장용 JSON 필드 -->
+                <!-- ⑦ 저장용 JSON 필드 -->
                 <input type="hidden" name="jsonData" id="jsonData"/>
 
-                <!-- ⑦ 저장 버튼 -->
-                <button type="button" id="saveButton">저장</button>
+                <!-- ⑧ 저장 버튼 -->
+                <button type="submit" id="saveButton">저장</button>
             </f:form>
 
-            <!-- ⑧ 서버 모델을 JSON으로 주입 -->
+            <!-- ⑨ 서버 모델을 JSON으로 주입 -->
             <script id="modelData" type="application/json">
                 ${m.toJson()}
             </script>
-
         </l:main-panel>
     </l:layout>
 </j:jelly>
