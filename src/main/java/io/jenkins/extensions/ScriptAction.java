@@ -32,6 +32,8 @@ public class ScriptAction implements RootAction {
     }
 
     public List<ScriptEntry> getScripts() throws IOException {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+
         File[] files = getDir().listFiles((f)->f.getName().endsWith(".json"));
         if (files == null) return Collections.emptyList();
         List<ScriptEntry> out = new ArrayList<>();
@@ -44,6 +46,8 @@ public class ScriptAction implements RootAction {
     }
 
     public ScriptModel getIt(@QueryParameter String script) throws IOException {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+
         if (script == null) return new ScriptModel();
         File f = new File(getDir(), script);
         return f.exists() ? load(f) : new ScriptModel();
