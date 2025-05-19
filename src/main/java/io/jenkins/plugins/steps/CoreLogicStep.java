@@ -29,10 +29,13 @@ public class CoreLogicStep extends Step {
     private final String input;
     /** .env 파일을 저장해 둔 File Credential의 ID */
     private String envFileCredentialsId;
+    /** 실행할 스크립트 언어 (python | typescript) */
+    private String language;
 
     @DataBoundConstructor
     public CoreLogicStep(String input) {
         this.input = input;
+        this.language = "python"; // 기본값
     }
 
     public String getInput() {
@@ -46,6 +49,15 @@ public class CoreLogicStep extends Step {
     @DataBoundSetter
     public void setEnvFileCredentialsId(String envFileCredentialsId) {
         this.envFileCredentialsId = envFileCredentialsId;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    @DataBoundSetter
+    public void setLanguage(String language) {
+        this.language = language;
     }
 
     @Override

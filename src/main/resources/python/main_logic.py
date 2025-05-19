@@ -23,28 +23,28 @@ import time
 
 # Pydantic models for parsing AI output
 class FailedStep(BaseModel):
-    num: int    # Step number
-    message: str # Failure message
+    num: int
+    message: str
 
 
-# Model for individual step results
+# 각 스텝 결과용 모델
 class StepResult(BaseModel):
-    num: int        # Step number
-    action: str     # Executed command/action
-    status: bool    # True for success, False for failure
-    duration: float # Time taken in seconds
-    feedback: str   # Individual feedback for the step
-    fail: Optional[str] # Reason for failure (None if successful)
+    num: int  # 스텝 번호
+    action: str  # 수행한 명령문
+    status: bool  # 성공/실패 여부
+    duration: float  # 소요 시간(초)
+    feedback: str  # 개별 피드백
+    fail: Optional[str]  # 실패 사유(없으면 None)
 
 
-# Scenario result model with added 'steps' field
+# 시나리오 결과 모델에 steps 필드 추가
 class WebTestResult(BaseModel):
     title: str
     status: bool
     duration: float
     feedback: str
     fail: Optional[List[FailedStep]]
-    steps: List[StepResult]  # ← List of step-specific results will be here.
+    steps: List[StepResult]  # ← 여기에 스텝별 결과가 리스트로 담깁니다.
 
 
 # Initialize output parser
@@ -52,44 +52,44 @@ output_parser = PydanticOutputParser(pydantic_object=WebTestResult)
 
 # System prompt template
 system_prompt = """
-You are an AI designed to execute web test scenarios.
+너는 웹 테스트 시나리오를 수행하는 AI야.
 
-- You must perform the actions instructed in each step **sequentially and accurately**.
-- If you cannot perform an action as instructed, or if the result is unexpected or abnormal, treat that step as **FAILED**. Clearly explain the reason for failure **in English**.
+- 각 스텝에서 지시한 행동을 **순서대로 정확히** 수행해야 해.
+- 지시에 맞게 행동할 수 없거나, 결과가 예상과 다르거나 이상하면 그 스텝은 **실패로 처리**해. 실패한 이유는 **한글로 명확히 설명**해야 해.
 
-- When capturing screenshots during the test, you must **only use the `browser_take_screenshot` tool**.
-  - Do **not** use the `browser_snapshot` tool.
-  - Screenshots should capture **exactly what is visible on the browser screen at that moment**.
-  - However, if a step explicitly instructs to take a snapshot, then use the `browser_snapshot` tool.
+- 테스트 중 스크린샷을 캡처해야 할 경우, 반드시 `browser_take_screenshot` 툴만 사용해야 해.
+  - `browser_snapshot` 툴은 사용하지 마.
+  - 캡처는 **지금 브라우저 화면에 보이는 그대로** 찍는 거야.
+  - 근데 step에서 스냅샷을 찍으라고 명시했다면 browser_snapshot 툴을 사용해.
+  
+- browser_type을 호출하는 경우 parameter로 exact는 넣지 마.
+- 요소를 확인하는 step은 snapshot 정보를 활용해서 확인해.
 
-- When calling `browser_type`, do not include `exact` as a parameter.
-- For steps that involve verifying elements, use snapshot information for confirmation.
+- **브라우저 종료 주의사항**:
+  - 시나리오에 **명시적으로 브라우저를 닫으라는 지시가 있는 경우에만** `browser_close` 툴을 사용해야 해.
+  - 그렇지 않으면 **절대로 `browser_close`를 호출하지 마.**
 
-- **Browser Closing Advisory**:
-  - Only use the `browser_close` tool if the scenario **explicitly instructs to close the browser**.
-  - Otherwise, **NEVER call `browser_close`**.
-
-- If using a tool in the AI Output Message, you must use **only one tool at a time**.
-- After all test steps are completed, provide **overall feedback**.
-- If a **failure** occurs during a step in the scenario, the result of that entire scenario must be **FAILED**.
-- If a failure occurs, provide detailed feedback in the scenario feedback about which step failed and how.
+- AI Output Message에서 tool을 사용한다면 **무조건 한번에 하나의 tool**만 사용해야해.
+- 모든 테스트 스텝이 끝난 후에는 **전체적인 피드백**을 제공해.
+- 시나리오를 진행하던 중에 스텝에서 **실패**가 발생한다면, 해당 시나리오의 결과는 **실패**가 되어야 해.
+- 실패를 했다면 시나리오 피드백에 어떤 스텝에서 어떻게 실패했는지 자세하게 피드백을 작성해야 해. 
 ---
 
-### Output Format (Strictly follow these guidelines):
+### 출력 형식 (아래 지침을 반드시 따를 것):
 
-1. The final response **must be enclosed within a JSON code block**. Output it exactly in the following format:
-   - The JSON block must start with **```json** and end with **```**.
-   - You may output other text outside the JSON block, but do not modify the JSON internals; maintain the format only.
+1. 최종 응답은 **무조건 JSON 코드블록 안에 포함**되어야 해. 반드시 아래와 같은 형식으로 출력해:
+   - JSON 블록은 **```json** 으로 시작하고 **```** 으로 끝나야 해.
+   - JSON 바깥에 다른 텍스트를 출력해도 되지만, JSON 내부는 절대 수정하지 말고 포맷만 유지해.
 
-2. The JSON must include the following items:
-#  1) num: Step order (integer)
-#  2) action: Executed step instruction (string)
-#  3) status: true for success, false for failure (boolean)
-#  4) duration: Time taken for the step (in seconds, float)
-#  5) feedback: Feedback for each step (string)
-#  6) fail: Reason for failure (string), or null if successful
+2. JSON에는 아래 항목이 반드시 포함되어야 해:
+#  1) num: 스텝 순서 (정수)
+#  2) action: 수행한 스텝 지시문 (문자열)
+#  3) status: 성공이면 true, 실패면 false (불리언)
+#  4) duration: 해당 스텝 수행 시간(단위: 초, 실수)
+#  5) feedback: 스텝 별 피드백 (문자열)
+#  6) fail: 실패 시 사유(문자열), 성공 시 null
 
-Execute the test scenario diligently and respond in the format below.
+테스트 시나리오를 충실하게 실행한 후, 아래 포맷대로 응답해.
 {format_instructions}
 """
 
@@ -112,7 +112,7 @@ def extract_json_block(text: str) -> str:
     match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
     if match:
         return match.group(1)
-    raise ValueError("Could not find JSON block.")
+    raise ValueError("JSON 블럭을 찾을 수 없습니다.")
 
 
 def extract_json_from_message(msg: AIMessage) -> str:
@@ -127,7 +127,7 @@ def extract_json_from_message(msg: AIMessage) -> str:
         return extract_json_block(full)
     elif isinstance(contents, str):
         return extract_json_block(contents)
-    raise ValueError("Could not parse AIMessage.content structure.")
+    raise ValueError("AIMessage.content 구조를 파싱할 수 없습니다.")
 
 
 # Save JSON result per scenario
@@ -216,21 +216,21 @@ async def _run_scenario(
         output_dir: str
 ) -> Tuple[int, WebTestResult, List[str]]:
 
-    # Measure scenario start time
+    # 시나리오 시작 시각 측정
     scenario_start = time.perf_counter()
 
-    scenario_dir = os.path.join(output_dir, f"{index}") # scenario-specific directory
+    scenario_dir = os.path.join(output_dir, f"{index}")
     screenshot_dir = os.path.join(scenario_dir, 'screenshots')
     os.makedirs(screenshot_dir, exist_ok=True)
 
-    # Call AI and save results
+    # AI 호출 및 결과 저장
     result, screenshots = await _run_logic(agent, scenario.get('steps', []), screenshot_dir)
 
-    # Measure scenario end time and overwrite duration
+    # 시나리오 종료 시각 측정 및 duration 덮어쓰기
     scenario_end = time.perf_counter()
     result.duration = scenario_end - scenario_start
 
-    # Use the actual scenario title instead of the one provided by AI
+    # AI가 준 title 대신, 실제 시나리오의 title 사용
     result.title = scenario.get("title", "")
 
     save_result(scenario, result, screenshots, scenario_dir)
@@ -250,123 +250,91 @@ def generate_combined_html_report(
     passed_steps = sum(1 for _, r, _ in results if r.status)
     failed_steps = total_steps - passed_steps
 
-    # Inline CSS to embed directly in the HTML, inspired by Jenkins Design Library
+    # Inline CSS to embed directly in the HTML
     css = '''
-:root {
-  --jenkins-font-family: sans-serif;
-  --jenkins-bg: #f0f0f0;
-  --jenkins-pane-bg: #fff;
-  --jenkins-pane-border-color: #ddd;
-  --jenkins-table-border-color: #ccc;
-  --jenkins-text-color: #333;
-  --jenkins-link-color: #007bff;
-  --jenkins-button-bg: #007bff;
-  --jenkins-button-text-color: #fff;
-  --jenkins-success-color: #28a745;
-  --jenkins-danger-color: #dc3545;
-  --jenkins-warning-color: #ffc107;
-  --jenkins-info-color: #17a2b8;
-  --jenkins-border-radius: .25rem;
-  --jenkins-box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-}
+/* Reset */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 body {
-  font-family: var(--jenkins-font-family);
-  background: var(--jenkins-bg);
-  color: var(--jenkins-text-color);
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #f9f9f9;
+  color: #333;
   padding: 20px;
-  line-height: 1.5;
 }
-.jenkins-pane { /* Mimicking Jenkins pane */
-  background: var(--jenkins-pane-bg);
-  border: 1px solid var(--jenkins-pane-border-color);
-  border-radius: var(--jenkins-border-radius);
+
+/* 헤더 */
+.header {
+  background: #4a90e2;
+  color: white;
   padding: 20px;
+  border-radius: 8px;
   margin-bottom: 20px;
-  box-shadow: var(--jenkins-box-shadow);
 }
 .header h1 {
   font-size: 1.8rem;
-  margin-bottom: 10px;
-  color: var(--jenkins-text-color);
-}
-.header p {
   margin-bottom: 5px;
 }
+.header p {
+  opacity: 0.9;
+}
+
+/* 요약 */
 .summary {
   display: flex;
-  gap: 20px; /* Increased gap */
+  gap: 15px;
   margin-bottom: 30px;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 .summary div {
-  background: var(--jenkins-pane-bg);
-  padding: 15px; /* Increased padding */
-  border-radius: var(--jenkins-border-radius);
-  border: 1px solid var(--jenkins-pane-border-color);
-  box-shadow: var(--jenkins-box-shadow);
-  flex: 1; /* Distribute space */
-  min-width: 150px; /* Minimum width for summary items */
+  background: white;
+  padding: 10px 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.summary h2 {
-    width: 100%;
-    margin-bottom: 10px;
-    font-size: 1.5rem;
-}
-.scenario-card { /* Renamed from .step to avoid conflict with Jenkins step styles */
-  background: var(--jenkins-pane-bg);
-  border-radius: var(--jenkins-border-radius);
-  padding: 20px;
+
+/* 시나리오 카드 */
+.step {
+  background: white;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-top: 15px;
   margin-bottom: 25px;
-  border-left: 5px solid var(--jenkins-info-color); /* Default border */
-  box-shadow: var(--jenkins-box-shadow);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s;
 }
-.scenario-card.success {
-  border-left-color: var(--jenkins-success-color);
+.step.success {
+  border-left: 6px solid #28a745;
 }
-.scenario-card.failed {
-  border-left-color: var(--jenkins-danger-color);
-  background-color: #fff7f7; /* Light red background for failed scenarios */
+.step.failed {
+  border-left: 6px solid #dc3545;
+  background: #fcebea;
 }
-.scenario-card h3 {
-    margin-bottom: 10px;
-    font-size: 1.25rem;
-}
-.scenario-card h4 {
-    margin-top: 15px;
-    margin-bottom: 5px;
-    font-size: 1.1rem;
-}
+
+/* 서브스텝 */
 .substeps {
   margin-top: 15px;
-  padding-left: 15px;
-  border-left: 2px solid #eee;
 }
-.substep-item { /* Renamed from .substep */
-  background: #f9f9f9; /* Slightly different background for substeps */
-  padding: 10px;
-  border-radius: var(--jenkins-border-radius);
+.substep {
+  background: #f7f9fc;
+  padding: 12px;
+  border-radius: 6px;
   margin-bottom: 10px;
-  border: 1px solid #e0e0e0;
+  border-left: 4px solid #777;
 }
-.substep-item.success {
-  border-left: 3px solid var(--jenkins-success-color);
+.substep.success {
+  border-color: #28a745;
 }
-.substep-item.failed {
-  border-left: 3px solid var(--jenkins-danger-color);
+.substep.failed {
+  border-color: #dc3545;
 }
-.substep-item p {
-  margin: 5px 0;
-  font-size: 0.9rem;
+.substep p {
+  margin: 4px 0;
+  font-size: 0.95rem;
 }
-.fail-reason {
-    color: var(--jenkins-danger-color);
-    font-weight: bold;
-}
+
+/* 스크린샷 갤러리 */
 .screenshots {
   display: flex;
   flex-wrap: wrap;
@@ -374,19 +342,15 @@ body {
   margin-top: 15px;
 }
 .screenshots img {
-  max-width: 200px; /* Limit screenshot preview size */
-  height: auto;
-  border-radius: var(--jenkins-border-radius);
-  border: 1px solid var(--jenkins-pane-border-color);
-  box-shadow: var(--jenkins-box-shadow);
-  cursor: pointer; /* Indicate they are clickable if you add zoom later */
+  width: calc(33.333% - 10px);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
-@media (max-width: 768px) {
-  .summary {
-    flex-direction: column;
-  }
+
+/* 반응형 */
+@media (max-width: 600px) {
   .screenshots img {
-    max-width: 100%; /* Full width on smaller screens */
+    width: 100%;
   }
 }
 '''
@@ -402,71 +366,71 @@ body {
     </style>
 </head>
 <body>
-    <div class="jenkins-pane header">
-        <h1>Test Execution Report</h1>
-        <p>Executed At: {test_start.strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>Duration: {test_duration_ms/1000:.2f}s</p>
+    <div class="header">
+        <h1>테스트 실행 보고서</h1>
+        <p>실행 시각: {test_start.strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>소요 시간: {test_duration_ms/1000:.2f}s</p>
     </div>
     
-    <div class="jenkins-pane summary">
-        <h2>Summary</h2>
-        <div>Total Scenarios: {total_steps}</div>
-        <div>Passed: {passed_steps}</div>
-        <div>Failed: {failed_steps}</div>
+    <div class="summary">
+        <h2>요약</h2>
+        <p>총 시나리오: {total_steps}</p>
+        <p>성공: {passed_steps}</p>
+        <p>실패: {failed_steps}</p>
     </div>
     
-    <div>
-        <h2>Detailed Scenarios</h2>
+    <div class="steps">
+        <h2>상세 시나리오</h2>
 """
 
-    # Scenario-specific blocks
+    # 시나리오별 블록
     for idx, res, screenshots in results:
-        status_class = "success" if res.status else "failed"
-        html += f"""        <div class="scenario-card {status_class}">
-            <h3>Scenario {idx}: {res.title}</h3>
-            <p>Status: <strong>{'PASSED' if res.status else 'FAILED'}</strong></p>
-            <p>Duration: {res.duration:.2f}s</p>
-            <h4>Scenario Feedback:</h4>
+        status_str = "success" if res.status else "failed"
+        html += f"""        <div class="step {status_str}">
+            <h3>시나리오 {idx}: {res.title}</h3>
+            <p>상태: {'성공' if res.status else '실패'}</p>
+            <p>소요 시간: {res.duration:.2f}s</p>
+            <h4>시나리오 피드백</h4>
             <p>{res.feedback}</p>
 """
 
-        # (Optional) Scenario-level failure reasons
+        # (Optional) 시나리오 레벨 실패 사유
         if res.fail:
-            html += "            <div class='fail-reason'><h5>Overall Failure Reasons:</h5><ul>\n"
+            html += "            <div class='fail'><h5>Fail Reasons</h5><ul>\n"
             for fs in res.fail:
                 html += f"                <li>Step {fs.num}: {fs.message}</li>\n"
             html += "            </ul></div>\n"
 
-        # **Add substep output per step**
+        # **스텝 별 substep 출력 추가**
         html += "            <div class='substeps'>\n"
-        html += "                <h4>Detailed Step Results:</h4>\n"
-        for step_result_item in res.steps: # Renamed 'step' to 'step_result_item' to avoid conflict
-            sub_status_class = "success" if step_result_item.status else "failed"
-            html += f"""                <div class="substep-item {sub_status_class}">
-                    <p><strong>Step {step_result_item.num}:</strong> {step_result_item.action}</p>
-                    <p>Status: {'✅ PASSED' if step_result_item.status else '❌ FAILED'}</p>
-                    <p>Feedback: {step_result_item.feedback}</p>
+        html += "                <h4>세부 스텝 결과</h4>\n"
+        for step in res.steps:
+            sc = "success" if step.status else "failed"
+            html += f"""                <div class="substep {sc}">
+                    <p><strong>Step {step.num}:</strong> {step.action}</p>
+                    <p>상태: {'✅ 성공' if step.status else '❌ 실패'}</p>
+                    <p>피드백: {step.feedback}</p>
             """
-            if step_result_item.fail:
-                html += f"                    <p class='fail-reason'>Failure Reason: {step_result_item.fail}</p>\n"
+            if step.fail:
+                html += f"                    <p>실패 사유: {step.fail}</p>\n"
             html += "                </div>\n"
         html += "            </div>\n"
 
-        # Output screenshots (modified)
+        # 스크린샷 출력 (수정)
         for img in screenshots:
-            # 'build_id' (renamed from test_id for clarity here) is the build ID string used when calling report
-            # 'idx' is the current scenario number (starting from 1)
+            # build 변수는 report 호출 시 사용된 build ID 문자열
+            # idx 는 현재 시나리오 번호 (1부터)
             html += (
                 f'            <img class="screenshot" '
                 f'src="screenshot?build={test_id}&scenario={idx}&file={img}" '
                 f'alt="Screenshot"/>\n'
             )
 
-        html += "        </div>\n"  # Close scenario block
+        html += "        </div>\n"  # 시나리오 블록 닫기
 
     html += "</div>\n</body>\n</html>"
 
-    # Save to file
+    # 파일로 저장
     with open(os.path.join(output_dir, "report.html"), "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -516,18 +480,18 @@ async def run_test(
     test_end = datetime.now()
     duration_ms = (test_end - test_start).total_seconds() * 1000
     generate_combined_html_report(results, output_dir, test_start, duration_ms, test_id)
-    print(f"All tests completed: {output_dir}/report.html")
+    print(f"모든 테스트 완료: {output_dir}/report.html")
 
 
 # Entry point
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Playwright E2E tests using MCP and LLM.")
-    parser.add_argument("--build", type=int, required=True, help="Build number for this test run.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build", type=int, required=True, help="빌드 번호")
     parser.add_argument(
-        "--output_dir", type=str, default="./results", help="Directory to save test results."
+        "--output_dir", type=str, default="./results", help="결과 저장 디렉토리"
     )
     parser.add_argument(
-        "--file", type=str, required=True, help="Path to the scenario JSON file."
+        "--file", type=str, required=True, help="시나리오 JSON 파일 경로"
     )
     args = parser.parse_args()
 

@@ -1,0 +1,28 @@
+{
+  "name": "host_les2",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "npm start scenarios/testScript.txt"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.1",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "@playwright/mcp": "^0.0.20",
+    "dotenv": "^16.5.0",
+    "playwright": "^1.52.0",
+    "playwright-core": "^1.52.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}

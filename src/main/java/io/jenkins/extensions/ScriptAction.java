@@ -32,8 +32,6 @@ public class ScriptAction implements RootAction {
     }
 
     public List<ScriptEntry> getScripts() throws IOException {
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-
         File[] files = getDir().listFiles((f)->f.getName().endsWith(".json"));
         if (files == null) return Collections.emptyList();
         List<ScriptEntry> out = new ArrayList<>();
@@ -46,8 +44,6 @@ public class ScriptAction implements RootAction {
     }
 
     public ScriptModel getIt(@QueryParameter String script) throws IOException {
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-
         if (script == null) return new ScriptModel();
         File f = new File(getDir(), script);
         return f.exists() ? load(f) : new ScriptModel();
@@ -56,11 +52,6 @@ public class ScriptAction implements RootAction {
     @RequirePOST
     public void doSave(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException {
-        
-        // RequirePost는 CSRF 공격은 막지만 Jenkins 사용자 권한 확인을 안함
-        // Jenkins 사용자 권한 확인 위해 추가한 코드
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-        
         // 한글 파라미터 깨짐 방지
         req.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
