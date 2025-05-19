@@ -4,7 +4,7 @@
         <l:main-panel>
             <h1>스크립트 목록</h1>
             <!-- 새 스크립트 작성 버튼: /jenkins/scripts/input 으로 이동 -->
-            <a href="input" class="model-link">+ 새 스크립트</a>
+            <a href="input" class="jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 새 스크립트</a>
             <table class="pane">
                 <tr><th>제목</th><th>수정일</th></tr>
                 <!-- it.scripts 에 담긴 ScriptEntry 리스트 반복 -->

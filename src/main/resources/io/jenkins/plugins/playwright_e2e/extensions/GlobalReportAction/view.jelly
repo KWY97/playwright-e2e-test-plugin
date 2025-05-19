@@ -3,7 +3,7 @@
     <j:choose>
         <j:when test="${build}">
             <h2>리포트 미리보기: ${build}</h2>
-            <div style="border:1px solid #ccc; margin-top:10px;">
+            <div>
                 <iframe
                         src="${rootURL}/${it.urlName}/report?build=${build}"
                         width="100%"

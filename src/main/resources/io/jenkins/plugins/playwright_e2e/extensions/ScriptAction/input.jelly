@@ -20,7 +20,7 @@
             <!-- ① 서버 모델 로드 -->
             <j:set var="m" value="${it.getIt(request.getParameter('script'))}"/>
 
-            <h1 style="margin-bottom:24px;">
+            <h1>
                 ${m.title ?: '새 스크립트'}
             </h1>
 
@@ -30,7 +30,6 @@
                 <f:entry title="스크립트 제목">
                     <f:textbox name="title"
                                id="scriptTitle"
-                               style="width:100%;"
                                value="${m.title}"/>
                 </f:entry>
 
@@ -47,11 +46,11 @@
                                 <label>스텝:
                                     <input type="text" class="st-text"/>
                                 </label>
-                                <button type="button" class="del-step">✕</button>
+                                <button type="button" class="del-step jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/></button>
                             </div>
                         </div>
-                        <button type="button" class="add-step">+ 스텝 추가</button>
-                        <button type="button" class="del-scenario">✕ 시나리오 삭제</button>
+                        <button type="button" class="add-step jenkins-button jenkins-button--small"><l:icon src="symbol-add"/> 스텝 추가</button>
+                        <button type="button" class="del-scenario jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
                     </div>
                 </div>
 
@@ -70,24 +69,24 @@
                                         <label>스텝:
                                             <input type="text" class="st-text" value="${st}"/>
                                         </label>
-                                        <button type="button" class="del-step">✕</button>
+                                        <button type="button" class="del-step jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/></button>
                                     </div>
                                 </j:forEach>
                             </div>
-                            <button type="button" class="add-step">+ 스텝 추가</button>
-                            <button type="button" class="del-scenario">✕ 시나리오 삭제</button>
+                            <button type="button" class="add-step jenkins-button jenkins-button--small"><l:icon src="symbol-add"/> 스텝 추가</button>
+                            <button type="button" class="del-scenario jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
                         </div>
                     </j:forEach>
                 </div>
 
                 <!-- ⑥ 새 시나리오 추가 -->
-                <button type="button" id="addScenario">+ 시나리오 추가</button>
+                <button type="button" id="addScenario" class="jenkins-button"><l:icon src="symbol-add"/> 시나리오 추가</button>
 
                 <!-- ⑦ 저장용 JSON 필드 -->
                 <input type="hidden" name="jsonData" id="jsonData"/>
 
                 <!-- ⑧ 저장 버튼 -->
-                <button type="submit" id="saveButton">저장</button>
+                <f:submit value="저장" />
             </f:form>
 
             <!-- ⑨ 서버 모델을 JSON으로 주입 -->

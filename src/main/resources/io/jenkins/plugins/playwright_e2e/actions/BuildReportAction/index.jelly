@@ -8,7 +8,7 @@
                 <dt>상태</dt><dd>${it.status}</dd>
                 <dt>실행 시각</dt><dd>${it.timestamp}</dd>
             </dl>
-            <a href="../">◀️ 뒤로가기</a>  <!-- 한 단계 위(빌드 페이지)로 -->
+            <a href="../" class="jenkins-button"><l:icon src="symbol-chevron-left" /> 뒤로가기</a>  <!-- 한 단계 위(빌드 페이지)로 -->
         </l:main-panel>
     </l:layout>
 </j:jelly>
