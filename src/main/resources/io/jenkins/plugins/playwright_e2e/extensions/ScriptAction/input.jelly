@@ -46,11 +46,11 @@
                                 <label>스텝:
                                     <input type="text" class="st-text"/>
                                 </label>
-                                <button type="button" class="del-step jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/></button>
+                                <button type="button" class="del-step jenkins-button jenkins-!-destructive-color jenkins-button--icon-only" title="스텝 삭제"><l:icon src="symbol-trash"/></button>
                             </div>
                         </div>
-                        <button type="button" class="add-step jenkins-button jenkins-button--small"><l:icon src="symbol-add"/> 스텝 추가</button>
-                        <button type="button" class="del-scenario jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
+                        <button type="button" class="add-step jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 스텝 추가</button>
+                        <button type="button" class="del-scenario jenkins-button jenkins-!-destructive-color"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
                     </div>
                 </div>
 
@@ -69,18 +69,18 @@
                                         <label>스텝:
                                             <input type="text" class="st-text" value="${st}"/>
                                         </label>
-                                        <button type="button" class="del-step jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/></button>
+                                        <button type="button" class="del-step jenkins-button jenkins-!-destructive-color jenkins-button--icon-only" title="스텝 삭제"><l:icon src="symbol-trash"/></button>
                                     </div>
                                 </j:forEach>
                             </div>
-                            <button type="button" class="add-step jenkins-button jenkins-button--small"><l:icon src="symbol-add"/> 스텝 추가</button>
-                            <button type="button" class="del-scenario jenkins-button jenkins-button--danger jenkins-button--small"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
+                            <button type="button" class="add-step jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 스텝 추가</button>
+                            <button type="button" class="del-scenario jenkins-button jenkins-!-destructive-color"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
                         </div>
                     </j:forEach>
                 </div>
 
                 <!-- ⑥ 새 시나리오 추가 -->
-                <button type="button" id="addScenario" class="jenkins-button"><l:icon src="symbol-add"/> 시나리오 추가</button>
+                <button type="button" id="addScenario" class="jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 시나리오 추가</button>
 
                 <!-- ⑦ 저장용 JSON 필드 -->
                 <input type="hidden" name="jsonData" id="jsonData"/>
