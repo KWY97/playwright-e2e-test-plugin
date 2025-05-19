@@ -86,7 +86,7 @@
                 <input type="hidden" name="jsonData" id="jsonData"/>
 
                 <!-- ⑧ 저장 버튼 -->
-                <f:submit value="저장" />
+                <f:submit value="저장" id="saveButton" />
             </f:form>
 
             <!-- ⑨ 서버 모델을 JSON으로 주입 -->
