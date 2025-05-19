@@ -41,17 +41,17 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
     protected Void run() throws Exception {
         FilePath workspace = getContext().get(FilePath.class);
         if (workspace == null) {
-            throw new IllegalStateException("워크스페이스를 가져올 수 없습니다");
+            throw new IllegalStateException("Could not get workspace");
         }
         TaskListener listener = getContext().get(TaskListener.class);
         Run<?, ?> run = getContext().get(Run.class);
 
-        // 시나리오 파일명 결정 (Python: .json, TS: .txt)
+        // Determine scenario filename (Python: .json, TS: .txt)
         String scenarioNameInput = step.getInput();
 
-        // Q2: Path Traversal 방지 - 파일명 검증
+        // Q2: Prevent Path Traversal - Validate filename
         if (scenarioNameInput.contains("/") || scenarioNameInput.contains("\\") || scenarioNameInput.contains("..")) {
-            throw new IllegalArgumentException("잘못된 시나리오 파일명입니다. 경로 문자를 포함할 수 없습니다: " + scenarioNameInput);
+            throw new IllegalArgumentException("Invalid scenario filename. Cannot contain path characters: " + scenarioNameInput);
         }
 
         String scenarioName = scenarioNameInput;
@@ -66,7 +66,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         File scriptsDir = new File(jenkinsHome, "scripts");
         File scenarioFile = new File(scriptsDir, scenarioName);
 
-        // Q2: Path Traversal 방지 - 경로 정규화 및 검증
+        // Q2: Prevent Path Traversal - Normalize and validate path
         try {
             String canonicalScriptsDir = scriptsDir.getCanonicalPath();
             String canonicalScenarioFile = scenarioFile.getCanonicalPath();
@@ -74,37 +74,37 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             // A simple startsWith check might be vulnerable if scriptsDir is a symlink itself or scenarioName contains tricky sequences.
             // However, for a basic check, startsWith is a first step. More robust validation might involve checking parent directories.
             if (!canonicalScenarioFile.startsWith(canonicalScriptsDir + File.separator) || !scenarioFile.getParentFile().getCanonicalPath().equals(canonicalScriptsDir)) {
-                 throw new IllegalArgumentException("잘못된 시나리오 파일 경로입니다. 허용된 디렉토리 외부 접근 시도: " + scenarioFile.getPath());
+                 throw new IllegalArgumentException("Invalid scenario file path. Attempt to access outside allowed directory: " + scenarioFile.getPath());
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("시나리오 파일 경로 검증 중 오류 발생: " + scenarioFile.getPath(), e);
+            throw new IllegalArgumentException("Error validating scenario file path: " + scenarioFile.getPath(), e);
         }
 
         if (!scenarioFile.exists()) {
-            throw new IllegalArgumentException("시나리오 파일이 없습니다: " + scenarioFile);
+            throw new IllegalArgumentException("Scenario file does not exist: " + scenarioFile);
         }
-        listener.getLogger().println("▶ 시나리오 로드: " + scenarioName);
+        listener.getLogger().println("▶ Loading scenario: " + scenarioName);
 
-        // Q4: 결과 저장 위치를 빌드별 아티팩트 디렉토리로 변경
+        // Q4: Change result storage location to build-specific artifact directory
         File artifactsDir = run.getArtifactsDir();
         File resultsDir = new File(artifactsDir, "playwright-e2e-results");
         if (!resultsDir.exists() && !resultsDir.mkdirs()) {
-            // resultsDir 생성 실패 시 예외를 던지거나, listener에 심각한 오류로 로깅하는 것이 좋을 수 있습니다.
-            // 여기서는 경고만 출력하고 계속 진행하지만, 실제로는 실행을 중단시키는 것이 더 안전할 수 있습니다.
-            listener.getLogger().println("▶ WARNING: 빌드 아티팩트 내 results 디렉터리 생성 실패: " + resultsDir.getAbsolutePath());
-            // throw new IOException("빌드 아티팩트 내 results 디렉터리 생성 실패: " + resultsDir.getAbsolutePath());
+            // If resultsDir creation fails, it might be better to throw an exception or log a severe error.
+            // Here, only a warning is printed, but stopping execution might be safer in a real scenario.
+            listener.getLogger().println("▶ WARNING: Failed to create results directory in build artifacts: " + resultsDir.getAbsolutePath());
+            // throw new IOException("Failed to create results directory in build artifacts: " + resultsDir.getAbsolutePath());
         }
 
-        // Q1 & Q3 해결: 스크립트 내용을 읽어 작업 공간에 임시 파일로 복사
+        // Q1 & Q3 Resolved: Read script content and copy to a temporary file in the workspace
         String scenarioContent = new String(Files.readAllBytes(scenarioFile.toPath()), StandardCharsets.UTF_8);
         String tempScenarioFileName = "temp_scenario_" + System.currentTimeMillis() + ("typescript".equalsIgnoreCase(lang) ? ".txt" : ".json");
         FilePath tempScenarioFilePath = workspace.child(tempScenarioFileName);
         
         try {
             tempScenarioFilePath.write(scenarioContent, StandardCharsets.UTF_8.name());
-            listener.getLogger().println("▶ 시나리오 파일을 작업 공간으로 복사: " + tempScenarioFilePath.getRemote());
+            listener.getLogger().println("▶ Copied scenario file to workspace: " + tempScenarioFilePath.getRemote());
 
-            // 언어별 분기 실행 (이제 scenarioFile 대신 tempScenarioFilePath 사용)
+            // Language-specific execution branch (now using tempScenarioFilePath instead of scenarioFile)
             if ("typescript".equalsIgnoreCase(lang)) {
                 runTypeScriptBranch(workspace, listener, tempScenarioFilePath);
             } else {
@@ -113,7 +113,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         } finally {
             if (tempScenarioFilePath.exists()) {
                 tempScenarioFilePath.delete();
-                listener.getLogger().println("▶ 임시 시나리오 파일 삭제: " + tempScenarioFilePath.getRemote());
+                listener.getLogger().println("▶ Deleted temporary scenario file: " + tempScenarioFilePath.getRemote());
             }
         }
         return null;
@@ -127,7 +127,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 step.getEnvFileCredentialsId(), FileCredentials.class, run, Collections.emptyList()
         );
         if (envCred == null) {
-            listener.error("❌ credentialsId='" + step.getEnvFileCredentialsId() + "'에 해당하는 Secret File 크리덴셜을 찾을 수 없습니다.");
+            listener.error("❌ Could not find Secret File credential for credentialsId='" + step.getEnvFileCredentialsId() + "'.");
             return;
         }
         byte[] content;
@@ -136,19 +136,19 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         FilePath envFile = pythonDir.child(".env");
         envFile.write(new String(content, StandardCharsets.UTF_8), "UTF-8");
-        listener.getLogger().println("✅ .env 파일을 " + envFile.getRemote() + "에 복사했습니다.");
+        listener.getLogger().println("✅ Copied .env file to " + envFile.getRemote());
 
         try {
             extractResources("python", pythonDir, listener);
-            cleanDosLineEndings(pythonDir, listener);
-            changeMode(pythonDir.child("setup.sh"), listener, 0755);
+            cleanDosLineEndings(pythonDir, listener); // Keep this call
+            changeMode(pythonDir.child("setup.sh"), listener, 0755); // Keep this call
             int setupExit = executeShell(pythonDir, listener, "bash setup.sh");
             if (setupExit != 0) {
-                listener.error("❌ setup.sh 실행 실패 (exit=" + setupExit + ")");
+                listener.error("❌ setup.sh execution failed (exit=" + setupExit + ")");
                 return;
             }
 
-            listener.getLogger().println("▶ Python 테스트 실행: main_logic.py (activate venv)");
+            listener.getLogger().println("▶ Executing Python test: main_logic.py (activate venv)");
             String buildNumber = String.valueOf(run.getNumber());
             String activateScript = new File(pythonDir.getRemote(), ".venv/bin/activate").getAbsolutePath();
             String cmd = String.join(" && ",
@@ -158,13 +158,13 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                     )
             );
             int testExit = executeShell(pythonDir, listener, cmd);
-            listener.getLogger().println("▶ 테스트 종료 (exit=" + testExit + ")");
+            listener.getLogger().println("▶ Test finished (exit=" + testExit + ")");
 
             String result = testExit == 0 ? "SUCCESS" : "FAIL";
             run.addAction(new BuildReportAction(step.getInput(), result));
             run.save();
         } finally {
-            listener.getLogger().println("▶ .env 파일 삭제");
+            listener.getLogger().println("▶ Deleting .env file"); // This was already translated
             pythonDir.child(".env").delete();
         }
     }
@@ -177,12 +177,12 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         FilePath tsDir = workspace.child("resources/typescript");
         tsDir.mkdirs();
 
-        // .env 복사
+        // Copy .env
         FileCredentials envCred = CredentialsProvider.findCredentialById(
                 step.getEnvFileCredentialsId(), FileCredentials.class, getContext().get(Run.class), Collections.emptyList()
         );
         if (envCred == null) {
-            listener.error("❌ credentialsId='" + step.getEnvFileCredentialsId() + "'에 해당하는 Secret File 크리덴셜을 찾을 수 없습니다.");
+            listener.error("❌ Could not find Secret File credential for credentialsId='" + step.getEnvFileCredentialsId() + "'."); // Already translated
             return;
         }
         byte[] content;
@@ -191,42 +191,42 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         FilePath envFile = tsDir.child(".env");
         envFile.write(new String(content, StandardCharsets.UTF_8), "UTF-8");
-        listener.getLogger().println("✅ .env 파일을 " + envFile.getRemote() + "에 복사했습니다.");
+        listener.getLogger().println("✅ Copied .env file to " + envFile.getRemote()); // Already translated
 
         try {
-            // TS 리소스 추출
-            extractResources("typescript", tsDir, listener);
+            // Extract TS resources
+            extractResources("typescript", tsDir, listener); // Keep this call
 
-            // 의존성 설치 (Playwright 및 playwright-core 포함)
-            listener.getLogger().println("▶ npm install 시작");
+            // Install dependencies (including Playwright and playwright-core)
+            listener.getLogger().println("▶ Starting npm install"); // Already translated
             int installExit = executeShell(tsDir, listener, "npm install");
             if (installExit != 0) {
-                listener.error("❌ npm install 실패 (exit=" + installExit + ")");
+                listener.error("❌ npm install failed (exit=" + installExit + ")"); // Already translated
                 return;
             }
-            listener.getLogger().println("▶ playwright-core 추가 설치 시작");
+            listener.getLogger().println("▶ Starting additional playwright-core installation"); // Already translated
             int coreExit = executeShell(tsDir, listener, "npm install playwright-core");
             if (coreExit != 0) {
-                listener.error("❌ playwright-core 설치 실패 (exit=" + coreExit + ")");
+                listener.error("❌ playwright-core installation failed (exit=" + coreExit + ")"); // Already translated
                 return;
             }
 
-            // 빌드 번호 가져오기 (Jenkins Run 객체 사용)
+            // Get build number (using Jenkins Run object)
             Run<?, ?> run = getContext().get(Run.class);
             String buildNumber = (run != null) ? Integer.toString(run.getNumber()) : "";
 
-            // TS 스크립트 실행: index.ts + --build 플래그
-            listener.getLogger().println("▶ TS 스크립트 실행: index.ts (시나리오 파일과 빌드 번호 전달)");
+            // Execute TS script: index.ts + --build flag
+            listener.getLogger().println("▶ Executing TS script: index.ts (passing scenario file and build number)"); // Already translated
             String cmd = String.format(
                     "npx ts-node index.ts '%s' --build %s",
                     scenarioFilePath.getRemote(), // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     buildNumber
             );
             int tsExit = executeShell(tsDir, listener, cmd);
-            listener.getLogger().println("▶ TS 종료 (exit=" + tsExit + ")");
+            listener.getLogger().println("▶ TS execution finished (exit=" + tsExit + ")"); // Already translated
         } finally {
-            // .env 정리
-            listener.getLogger().println("▶ .env 파일 삭제");
+            // Clean up .env
+            listener.getLogger().println("▶ Deleting .env file"); // Already translated
             tsDir.child(".env").delete();
         }
     }
@@ -234,7 +234,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
     private void extractResources(String resourcePath, FilePath targetDir, TaskListener listener) throws IOException {
         ClassLoader cl = getClass().getClassLoader();
         URL dirURL = cl.getResource(resourcePath);
-        if (dirURL == null) throw new IOException("리소스 경로를 찾을 수 없습니다: " + resourcePath);
+        if (dirURL == null) throw new IOException("Resource path not found: " + resourcePath); // Already translated
         if ("file".equals(dirURL.getProtocol())) {
             try {
                 Path src = Paths.get(dirURL.toURI());
@@ -249,11 +249,11 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                             Files.copy(path, dest.toPath());
                         }
                     } catch (Exception e) {
-                        listener.getLogger().println("리소스 복사 오류: " + e.getMessage());
+                        listener.getLogger().println("Error copying resource: " + e.getMessage()); // Already translated
                     }
                 });
             } catch (URISyntaxException e) {
-                throw new IOException("리소스 경로 URI 변환 실패", e);
+                throw new IOException("Failed to convert resource path URI", e); // Already translated
             }
         } else if ("jar".equals(dirURL.getProtocol())) {
             String jarPath = dirURL.getPath().substring(5, dirURL.getPath().indexOf("!"));
@@ -276,18 +276,18 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 }
             }
         } else {
-            throw new IOException("지원하지 않는 프로토콜: " + dirURL.getProtocol());
+            throw new IOException("Unsupported protocol: " + dirURL.getProtocol()); // Already translated
         }
     }
 
     private void cleanDosLineEndings(FilePath dir, TaskListener listener) throws IOException, InterruptedException {
-        listener.getLogger().println("▶ CRLF 제거 시작");
+        listener.getLogger().println("▶ Starting CRLF removal"); // Already translated
         executeShell(dir, listener, "find . -type f -name '*.sh' -exec sed -i 's/\r$//' {} +");
-        listener.getLogger().println("▶ CRLF 제거 완료");
+        listener.getLogger().println("▶ CRLF removal complete"); // Already translated
     }
 
     private void changeMode(FilePath file, TaskListener listener, int mode) throws IOException, InterruptedException {
-        listener.getLogger().println("▶ chmod " + Integer.toOctalString(mode) + " " + file.getRemote());
+        listener.getLogger().println("▶ chmod " + Integer.toOctalString(mode) + " " + file.getRemote()); // Already translated
         file.chmod(mode);
     }
 

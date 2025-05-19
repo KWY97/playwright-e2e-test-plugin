@@ -26,7 +26,7 @@ public class ScriptAction implements RootAction {
     private File getDir() throws IOException {
         File d = new File(Jenkins.get().getRootDir(), "scripts");
         if (!d.exists() && (!d.mkdirs() && !d.exists())) {
-            throw new IOException("스크립트 저장 디렉터리를 생성하지 못했습니다: " + d.getAbsolutePath());
+            throw new IOException("Failed to create script storage directory: " + d.getAbsolutePath());
         }
         return d;
     }
@@ -52,18 +52,18 @@ public class ScriptAction implements RootAction {
     @RequirePOST
     public void doSave(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException {
-        // 한글 파라미터 깨짐 방지
+        // Prevent garbled Korean parameters
         req.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
-        // JSON 파라미터 읽기
+        // Read JSON parameter
         String json = req.getParameter("jsonData");
         ScriptModel model = ScriptModel.fromJson(json);
 
-        // 파일명 생성
+        // Generate filename
         String fileName = sanitize(model.getTitle()) + ".json";
         Path target = getDir().toPath().resolve(fileName);
 
-        // UTF-8로 JSON 쓰기, 한글 유니코드 이스케이프 비활성화
+        // Write JSON in UTF-8, disable Unicode escaping for Korean characters
         ObjectMapper mapper = new ObjectMapper();
         mapper.getFactory().configure(JsonGenerator.Feature.ESCAPE_NON_ASCII, false);
 
@@ -75,7 +75,7 @@ public class ScriptAction implements RootAction {
             mapper.writerWithDefaultPrettyPrinter().writeValue(writer, model);
         }
 
-        // 저장 후 목록으로 리다이렉트
+        // Redirect to list after saving
         rsp.sendRedirect2(Jenkins.get().getRootUrl() + getUrlName());
     }
 

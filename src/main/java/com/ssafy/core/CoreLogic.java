@@ -17,8 +17,8 @@ public class CoreLogic {
     private static final Logger log = LoggerFactory.getLogger(CoreLogic.class);
 
     /**
-     * classpath:/python/test-core-logic.py 리소스를
-     * 임시 파일로 추출하고 경로를 반환합니다.
+     * Extracts the classpath:/python/test-core-logic.py resource
+     * to a temporary file and returns its path.
      */
     private Path extractScript() throws IOException {
         try (var in = getClass().getClassLoader().getResourceAsStream("python/test-core-logic.py")) {
@@ -33,17 +33,17 @@ public class CoreLogic {
     }
 
     /**
-     * 입력값과 빌드번호를 받아 Python 스크립트를 실행하고,
-     * 스크립트 내에서 결과 파일을 생성한 뒤,
-     * stdout으로 처리 결과를 반환합니다.
+     * Executes a Python script with the given input and build number,
+     * generates a result file within the script, and
+     * returns the processing result via stdout.
      */
     public String process(String input, int buildNumber) {
         String result = "";
         try {
-            // 1) 스크립트를 임시 파일로 추출
+            // 1) Extract the script to a temporary file
             Path script = extractScript();
 
-            // 2) Python 실행 (UTF-8 입출력 강제 + Jenkins 환경 주입)
+            // 2) Execute Python (force UTF-8 I/O + inject Jenkins environment)
             ProcessBuilder pb = new ProcessBuilder("python", script.toString(), input);
             Map<String, String> env = pb.environment();
             env.put("PYTHONIOENCODING", "utf-8");
@@ -53,14 +53,14 @@ public class CoreLogic {
 
             Process proc = pb.start();
 
-            // 3) 표준출력에서 한 줄 읽기 (UTF-8 디코딩)
+            // 3) Read one line from stdout (UTF-8 decoding)
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(proc.getInputStream(), Charset.forName("UTF-8")))) {
                 String line = reader.readLine();
                 result = (line != null ? line : "");
             }
 
-            // 4) 에러 로그 출력
+            // 4) Print error log
             int exitCode = proc.waitFor();
             if (exitCode != 0) {
                 try (BufferedReader err = new BufferedReader(
@@ -70,13 +70,13 @@ public class CoreLogic {
                     while ((l = err.readLine()) != null) {
                         sb.append(l).append("\n");
                     }
-                    log.error("Python 에러:\n{}", sb.toString());
+                    log.error("Python error:\n{}", sb.toString());
                 }
             }
 
-            log.info("Python 결과: {}", result);
+            log.info("Python result: {}", result);
         } catch (IOException | InterruptedException e) {
-            log.error("Python 스크립트 실행 중 오류", e);
+            log.error("Error during Python script execution", e);
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }

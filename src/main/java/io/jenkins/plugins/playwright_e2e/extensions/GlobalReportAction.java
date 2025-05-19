@@ -29,8 +29,8 @@ public class GlobalReportAction implements RootAction {
     @Override public String getUrlName()        { return "mcp-reports"; }
 
     /**
-     * 'results' 디렉토리에서 빌드 폴더 스캔
-     * 마지막 '_' 뒤 숫자를 빌드 번호로 사용
+     * Scan build folders in the 'results' directory.
+     * Use the number after the last '_' as the build number.
      */
     public List<BuildEntry> getBuilds() {
         File rootDir = new File(Jenkins.get().getRootDir(), "results");
@@ -55,7 +55,7 @@ public class GlobalReportAction implements RootAction {
             } catch (NumberFormatException e) {
                 buildNum = -1;
             }
-            // result.json 확인
+            // Check result.json
             File scenarioDir = new File(dir, numPart);
             File jsonFile = new File(scenarioDir, "result.json");
             Date when;
@@ -71,7 +71,7 @@ public class GlobalReportAction implements RootAction {
     }
 
     /**
-     * 특정 빌드 디렉토리와 시나리오로 JSON 읽어오기
+     * Read JSON for a specific build directory and scenario.
      */
     public ReportDetail getReportDetail(@QueryParameter String build,
                                         @QueryParameter String scenario) throws IOException {
@@ -94,7 +94,7 @@ public class GlobalReportAction implements RootAction {
     }
 
     /**
-     * 빌드별 시나리오 목록
+     * List of scenarios per build.
      */
     public List<String> getScenarios(@QueryParameter String build) {
         File dir = new File(Jenkins.get().getRootDir(), "results" + File.separator + build);
@@ -114,7 +114,7 @@ public class GlobalReportAction implements RootAction {
     }
 
     /**
-     * 스크린샷 base64 반환
+     * Return screenshot as base64 data URI.
      */
     public String getScreenshotDataUri(@QueryParameter String build,
                                        @QueryParameter String scenario,
@@ -129,15 +129,15 @@ public class GlobalReportAction implements RootAction {
     }
 
     /**
-     * report.html 파일을 그대로 내려주는 Stapler 엔드포인트
-     * URL: /jenkins/mcp-reports/report?build=<빌드폴더명>
+     * Stapler endpoint that serves the report.html file directly.
+     * URL: /jenkins/mcp-reports/report?build=<buildFolderName>
      */
     public HttpResponse doReport(@QueryParameter String build) throws IOException {
         File html = new File(
                 Jenkins.get().getRootDir(),
                 "results" + File.separator + build + File.separator + "report.html"
         );
-        // ── 디버깅 로그 ─────────────────────────────
+        // ── Debugging Log ─────────────────────────────
         System.out.println("[GlobalReportAction] Looking for report at: "
                 + html.getAbsolutePath()
                 + " (exists=" + html.exists() + ", readable=" + html.canRead() + ")");
@@ -149,7 +149,7 @@ public class GlobalReportAction implements RootAction {
     }
 
     /**
-     * screenshot 이미지를 서빙.
+     * Serves screenshot images.
      * URL: /mcp-reports/screenshot?build={build}&scenario={scenario}&file={file}
      */
     public HttpResponse doScreenshot(

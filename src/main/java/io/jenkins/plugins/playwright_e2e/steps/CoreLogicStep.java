@@ -27,15 +27,15 @@ import java.util.Set;
 
 public class CoreLogicStep extends Step {
     private final String input;
-    /** .env 파일을 저장해 둔 File Credential의 ID */
+    /** ID of the File Credential where the .env file is stored */
     private String envFileCredentialsId;
-    /** 실행할 스크립트 언어 (python | typescript) */
+    /** Scripting language to execute (python | typescript) */
     private String language;
 
     @DataBoundConstructor
     public CoreLogicStep(String input) {
         this.input = input;
-        this.language = "python"; // 기본값
+        this.language = "python"; // Default value
     }
 
     public String getInput() {

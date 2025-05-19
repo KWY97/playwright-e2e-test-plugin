@@ -61,23 +61,23 @@ public class ScriptModel {
         }
     }
 
-    // JSON → 객체
+    // JSON -> Object
     public static ScriptModel fromJson(String json) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(json, ScriptModel.class);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON 파싱 실패", e);
+            throw new RuntimeException("JSON parsing failed", e);
         }
     }
 
-    // 객체 → JSON (디버깅용)
+    // Object -> JSON (for debugging)
     public String toJson() {
         try {
             ObjectMapper mapper = new ObjectMapper();
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON 직렬화 실패", e);
+            throw new RuntimeException("JSON serialization failed", e);
         }
     }
 }

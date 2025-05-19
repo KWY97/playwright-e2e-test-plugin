@@ -10,7 +10,7 @@ public class ScriptEntry {
     public ScriptEntry(String title, String fileName, Date modified) {
         this.title = title;
         this.fileName = fileName;
-        // 방어적 복사
+        // Defensive copy
         this.modified = modified != null ? new Date(modified.getTime()) : null;
     }
 
