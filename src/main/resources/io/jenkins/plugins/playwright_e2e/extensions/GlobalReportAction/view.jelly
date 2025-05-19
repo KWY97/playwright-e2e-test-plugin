@@ -2,7 +2,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
     <j:choose>
         <j:when test="${build}">
-            <h2>리포트 미리보기: ${build}</h2>
+            <h2>Report Preview: ${build}</h2>
             <div>
                 <iframe
                         src="${rootURL}/${it.urlName}/report?build=${build}"
@@ -13,7 +13,7 @@
             </div>
         </j:when>
         <j:otherwise>
-            <p>먼저 왼쪽에서 빌드를 선택하세요.</p>
+            <p>Please select a build from the left first.</p>
         </j:otherwise>
     </j:choose>
 </j:jelly>

@@ -5,10 +5,10 @@
          xmlns:f="/lib/form">
 
     <l:layout permission="ADMINISTER">
-        <!-- Jenkins 기본 head(crumb 메타 등)를 보존하고
-             추가 리소스만 덧붙이는 l:head -->
+        <!-- Preserve Jenkins default head (crumb meta, etc.)
+             Append additional resources only with l:head -->
         <l:head>
-            <!-- raw HTML로도 넣을 수 있습니다 -->
+            <!-- Can also be inserted as raw HTML -->
             <link rel="stylesheet"
                   href="${rootURL}/plugin/playwright-e2e-test/io/jenkins/extensions/ScriptAction/input.css"
                   type="text/css"/>
@@ -17,79 +17,79 @@
         </l:head>
 
         <l:main-panel>
-            <!-- ① 서버 모델 로드 -->
+            <!-- ① Load server model -->
             <j:set var="m" value="${it.getIt(request.getParameter('script'))}"/>
 
             <h1>
-                ${m.title ?: '새 스크립트'}
+                ${m.title ?: 'New Script'}
             </h1>
 
-            <!-- ② CSRF 크럼은 crumb="true" 에서 자동으로 처리 -->
+            <!-- ② CSRF crumb is automatically handled in crumb="true" -->
             <f:form method="post" action="save" crumb="true">
-                <!-- ③ 제목 -->
-                <f:entry title="스크립트 제목">
+                <!-- ③ Title -->
+                <f:entry title="Script Title">
                     <f:textbox name="title"
                                id="scriptTitle"
                                value="${m.title}"/>
                 </f:entry>
 
-                <!-- ④ 숨김 템플릿 -->
+                <!-- ④ Hidden template -->
                 <div id="scenario-template" style="display:none">
                     <div class="scenario">
                         <div>
-                            <label>시나리오 제목:
+                            <label>Scenario Title:
                                 <input type="text" class="sc-title"/>
                             </label>
                         </div>
                         <div class="steps">
                             <div>
-                                <label>스텝:
+                                <label>Step:
                                     <input type="text" class="st-text"/>
                                 </label>
-                                <button type="button" class="del-step jenkins-button jenkins-!-destructive-color jenkins-button--icon-only" title="스텝 삭제"><l:icon src="symbol-trash"/></button>
+                                <button type="button" class="del-step jenkins-button jenkins-!-destructive-color jenkins-button--icon-only" title="Delete Step"><l:icon src="symbol-trash"/></button>
                             </div>
                         </div>
-                        <button type="button" class="add-step jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 스텝 추가</button>
-                        <button type="button" class="del-scenario jenkins-button jenkins-!-destructive-color"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
+                        <button type="button" class="add-step jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> Add Step</button>
+                        <button type="button" class="del-scenario jenkins-button jenkins-!-destructive-color"><l:icon src="symbol-trash"/> Delete Scenario</button>
                     </div>
                 </div>
 
-                <!-- ⑤ 기존 시나리오 렌더 -->
+                <!-- ⑤ Render existing scenarios -->
                 <div id="editor">
                     <j:forEach items="${m.scenarios}" var="sc">
                         <div class="scenario">
                             <div>
-                                <label>시나리오 제목:
+                                <label>Scenario Title:
                                     <input type="text" class="sc-title" value="${sc.title}"/>
                                 </label>
                             </div>
                             <div class="steps">
                                 <j:forEach items="${sc.steps}" var="st">
                                     <div>
-                                        <label>스텝:
+                                        <label>Step:
                                             <input type="text" class="st-text" value="${st}"/>
                                         </label>
-                                        <button type="button" class="del-step jenkins-button jenkins-!-destructive-color jenkins-button--icon-only" title="스텝 삭제"><l:icon src="symbol-trash"/></button>
+                                        <button type="button" class="del-step jenkins-button jenkins-!-destructive-color jenkins-button--icon-only" title="Delete Step"><l:icon src="symbol-trash"/></button>
                                     </div>
                                 </j:forEach>
                             </div>
-                            <button type="button" class="add-step jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 스텝 추가</button>
-                            <button type="button" class="del-scenario jenkins-button jenkins-!-destructive-color"><l:icon src="symbol-trash"/> 시나리오 삭제</button>
+                            <button type="button" class="add-step jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> Add Step</button>
+                            <button type="button" class="del-scenario jenkins-button jenkins-!-destructive-color"><l:icon src="symbol-trash"/> Delete Scenario</button>
                         </div>
                     </j:forEach>
                 </div>
 
-                <!-- ⑥ 새 시나리오 추가 -->
-                <button type="button" id="addScenario" class="jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> 시나리오 추가</button>
+                <!-- ⑥ Add new scenario -->
+                <button type="button" id="addScenario" class="jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> Add Scenario</button>
 
-                <!-- ⑦ 저장용 JSON 필드 -->
+                <!-- ⑦ JSON field for saving -->
                 <input type="hidden" name="jsonData" id="jsonData"/>
 
-                <!-- ⑧ 저장 버튼 -->
-                <f:submit value="저장" id="saveButton" />
+                <!-- ⑧ Save button -->
+                <f:submit value="Save" id="saveButton" />
             </f:form>
 
-            <!-- ⑨ 서버 모델을 JSON으로 주입 -->
+            <!-- ⑨ Inject server model as JSON -->
             <script id="modelData" type="application/json">
                 ${m.toJson()}
             </script>

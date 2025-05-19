@@ -4,11 +4,11 @@
         <l:main-panel>
             <h1>MCP Test Result</h1>
             <dl>
-                <dt>스크립트 경로</dt><dd>${it.scriptPath}</dd>
-                <dt>상태</dt><dd>${it.status}</dd>
-                <dt>실행 시각</dt><dd>${it.timestamp}</dd>
+                <dt>Script Path</dt><dd>${it.scriptPath}</dd>
+                <dt>Status</dt><dd>${it.status}</dd>
+                <dt>Execution Time</dt><dd>${it.timestamp}</dd>
             </dl>
-            <a href="../" class="jenkins-button"><l:icon src="symbol-chevron-left" /> 뒤로가기</a>  <!-- 한 단계 위(빌드 페이지)로 -->
+            <a href="../" class="jenkins-button"><l:icon src="symbol-chevron-left" /> Back</a>  <!-- Go up one level (to the build page) -->
         </l:main-panel>
     </l:layout>
 </j:jelly>

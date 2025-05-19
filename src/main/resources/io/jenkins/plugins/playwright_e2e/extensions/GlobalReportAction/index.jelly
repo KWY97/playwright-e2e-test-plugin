@@ -4,11 +4,11 @@
         <l:main-panel>
             <h1>MCP Reports</h1>
             <table class="pane">
-                <tr><th>빌드</th><th>실행 시각</th></tr>
+                <tr><th>Build</th><th>Execution Time</th></tr>
                 <j:forEach items="${it.builds}" var="b">
                     <tr>
                         <td>
-                            <!-- 뷰로 넘길 파라미터는 전체 폴더명(dirName)을 쓰거나, 숫자(number)를 써도 됩니다 -->
+                            <!-- Parameters to pass to the view can be the full folder name (dirName) or the number -->
                             <a href="report?build=${b.dirName}">
                                 ${b.displayName}
                             </a>
