@@ -116,18 +116,4 @@
       <artifactId>jackson2-api</artifactId>
     </dependency>
   </dependencies>
-
-  <pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.jenkins-ci.tools</groupId>
-        <artifactId>maven-hpi-plugin</artifactId>
-        <version>${maven-hpi-plugin.version}</version>
-        <configuration>
-          <jenkinsVersion>${jenkins.baseline}</jenkinsVersion>
-        </configuration>
-      </plugin>
-    </plugins>
-  </pluginManagement>
-
 </project>
