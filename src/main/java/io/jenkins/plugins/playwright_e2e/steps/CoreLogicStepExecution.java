@@ -47,7 +47,14 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         Run<?, ?> run = getContext().get(Run.class);
 
         // 시나리오 파일명 결정 (Python: .json, TS: .txt)
-        String scenarioName = step.getInput();
+        String scenarioNameInput = step.getInput();
+
+        // Q2: Path Traversal 방지 - 파일명 검증
+        if (scenarioNameInput.contains("/") || scenarioNameInput.contains("\\") || scenarioNameInput.contains("..")) {
+            throw new IllegalArgumentException("잘못된 시나리오 파일명입니다. 경로 문자를 포함할 수 없습니다: " + scenarioNameInput);
+        }
+
+        String scenarioName = scenarioNameInput;
         String lang = step.getLanguage() != null ? step.getLanguage() : "python";
         if ("typescript".equalsIgnoreCase(lang)) {
             if (!scenarioName.endsWith(".txt")) scenarioName += ".txt";
@@ -58,26 +65,61 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         File jenkinsHome = Jenkins.get().getRootDir();
         File scriptsDir = new File(jenkinsHome, "scripts");
         File scenarioFile = new File(scriptsDir, scenarioName);
+
+        // Q2: Path Traversal 방지 - 경로 정규화 및 검증
+        try {
+            String canonicalScriptsDir = scriptsDir.getCanonicalPath();
+            String canonicalScenarioFile = scenarioFile.getCanonicalPath();
+            // Ensure scenarioFile is within scriptsDir and also check for symlink issues by ensuring it's a direct child.
+            // A simple startsWith check might be vulnerable if scriptsDir is a symlink itself or scenarioName contains tricky sequences.
+            // However, for a basic check, startsWith is a first step. More robust validation might involve checking parent directories.
+            if (!canonicalScenarioFile.startsWith(canonicalScriptsDir + File.separator) || !scenarioFile.getParentFile().getCanonicalPath().equals(canonicalScriptsDir)) {
+                 throw new IllegalArgumentException("잘못된 시나리오 파일 경로입니다. 허용된 디렉토리 외부 접근 시도: " + scenarioFile.getPath());
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("시나리오 파일 경로 검증 중 오류 발생: " + scenarioFile.getPath(), e);
+        }
+
         if (!scenarioFile.exists()) {
             throw new IllegalArgumentException("시나리오 파일이 없습니다: " + scenarioFile);
         }
         listener.getLogger().println("▶ 시나리오 로드: " + scenarioName);
 
-        File resultsDir = new File(jenkinsHome, "results");
+        // Q4: 결과 저장 위치를 빌드별 아티팩트 디렉토리로 변경
+        File artifactsDir = run.getArtifactsDir();
+        File resultsDir = new File(artifactsDir, "playwright-e2e-results");
         if (!resultsDir.exists() && !resultsDir.mkdirs()) {
-            listener.getLogger().println("▶ WARNING: results 디렉터리 생성 실패: " + resultsDir);
+            // resultsDir 생성 실패 시 예외를 던지거나, listener에 심각한 오류로 로깅하는 것이 좋을 수 있습니다.
+            // 여기서는 경고만 출력하고 계속 진행하지만, 실제로는 실행을 중단시키는 것이 더 안전할 수 있습니다.
+            listener.getLogger().println("▶ WARNING: 빌드 아티팩트 내 results 디렉터리 생성 실패: " + resultsDir.getAbsolutePath());
+            // throw new IOException("빌드 아티팩트 내 results 디렉터리 생성 실패: " + resultsDir.getAbsolutePath());
         }
 
-        // 언어별 분기 실행
-        if ("typescript".equalsIgnoreCase(lang)) {
-            runTypeScriptBranch(workspace, listener, scenarioFile);
-        } else {
-            runPythonBranch(workspace, listener, scenarioFile, run, resultsDir);
+        // Q1 & Q3 해결: 스크립트 내용을 읽어 작업 공간에 임시 파일로 복사
+        String scenarioContent = new String(Files.readAllBytes(scenarioFile.toPath()), StandardCharsets.UTF_8);
+        String tempScenarioFileName = "temp_scenario_" + System.currentTimeMillis() + ("typescript".equalsIgnoreCase(lang) ? ".txt" : ".json");
+        FilePath tempScenarioFilePath = workspace.child(tempScenarioFileName);
+        
+        try {
+            tempScenarioFilePath.write(scenarioContent, StandardCharsets.UTF_8.name());
+            listener.getLogger().println("▶ 시나리오 파일을 작업 공간으로 복사: " + tempScenarioFilePath.getRemote());
+
+            // 언어별 분기 실행 (이제 scenarioFile 대신 tempScenarioFilePath 사용)
+            if ("typescript".equalsIgnoreCase(lang)) {
+                runTypeScriptBranch(workspace, listener, tempScenarioFilePath);
+            } else {
+                runPythonBranch(workspace, listener, tempScenarioFilePath, run, resultsDir);
+            }
+        } finally {
+            if (tempScenarioFilePath.exists()) {
+                tempScenarioFilePath.delete();
+                listener.getLogger().println("▶ 임시 시나리오 파일 삭제: " + tempScenarioFilePath.getRemote());
+            }
         }
         return null;
     }
 
-    private void runPythonBranch(FilePath workspace, TaskListener listener, File scenarioFile, Run<?,?> run, File resultsDir) throws Exception {
+    private void runPythonBranch(FilePath workspace, TaskListener listener, FilePath scenarioFilePath, Run<?,?> run, File resultsDir) throws Exception { // File scenarioFile -> FilePath scenarioFilePath
         FilePath pythonDir = workspace.child("resources/python");
         pythonDir.mkdirs();
 
@@ -112,7 +154,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             String cmd = String.join(" && ",
                     String.format("source %s", activateScript),
                     String.format("python main_logic.py --file '%s' --build %s --output_dir '%s'",
-                            scenarioFile.getAbsolutePath(), buildNumber, resultsDir.getAbsolutePath()
+                            scenarioFilePath.getRemote(), buildNumber, resultsDir.getAbsolutePath() // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     )
             );
             int testExit = executeShell(pythonDir, listener, cmd);
@@ -130,7 +172,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
     private void runTypeScriptBranch(
             FilePath workspace,
             TaskListener listener,
-            File scenarioFile
+            FilePath scenarioFilePath // File scenarioFile -> FilePath scenarioFilePath
     ) throws Exception {
         FilePath tsDir = workspace.child("resources/typescript");
         tsDir.mkdirs();
@@ -177,7 +219,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             listener.getLogger().println("▶ TS 스크립트 실행: index.ts (시나리오 파일과 빌드 번호 전달)");
             String cmd = String.format(
                     "npx ts-node index.ts '%s' --build %s",
-                    scenarioFile.getAbsolutePath(),
+                    scenarioFilePath.getRemote(), // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     buildNumber
             );
             int tsExit = executeShell(tsDir, listener, cmd);
