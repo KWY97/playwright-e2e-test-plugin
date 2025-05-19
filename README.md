@@ -80,6 +80,13 @@ pipeline {
 When running Jenkins as a Docker Container, it must be run with Root privileges.
 (Otherwise, normal execution will not be possible.)
 
+### ⚠️ Platform Limitation
+
+This plugin currently supports **Linux-based environments only**.  
+Windows is **not supported** at this time due to underlying system dependencies and command usage.
+
+Please use a Linux-based Jenkins environment (e.g., Debian or Ubuntu) when configuring or executing this plugin.
+
 Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins.io/).
 
 ## Contributing
