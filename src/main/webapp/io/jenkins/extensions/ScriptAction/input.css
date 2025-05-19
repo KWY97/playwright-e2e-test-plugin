@@ -76,26 +76,3 @@ input.st-text:focus {
   margin-bottom: 16px;
 }
 
-/* 저장 버튼(<f:submit>)은 일반적으로 폼의 마지막에 위치하며,
-   Jenkins 기본 폼 스타일링에 의해 적절한 간격이 적용될 것으로 기대합니다.
-   필요하다면 f:bottomButtonBar 등을 사용하여 그룹화할 수 있습니다. */
-
-/* 커스텀 저장 버튼 스타일 (Jenkins 표준 색상 사용) */
-#customSaveButton.jenkins-button-save-custom {
-  background-color: var(--success-color); /* Jenkins 표준 success 색상 */
-  color: white; /* 대비를 위해 흰색 텍스트 사용. --success-contrast-color 같은 변수가 있다면 사용 권장 */
-  /* border-color: var(--success-color); */ /* 필요시 테두리 색상도 동일하게 */
-}
-
-#customSaveButton.jenkins-button-save-custom:hover,
-#customSaveButton.jenkins-button-save-custom:focus {
-  background-color: var(--success-color); /* 호버 시에도 기본 색상 유지 후 filter 적용 */
-  filter: brightness(90%); /* 호버/포커스 시 약간 어둡게 */
-  color: white;
-}
-
-/* 커스텀 저장 버튼 내 아이콘과 텍스트 간격 */
-#customSaveButton.jenkins-button-save-custom .jenkins-icon {
-  margin-right: 4px; /* 아이콘 오른쪽 여백 */
-  vertical-align: text-bottom; /* 아이콘과 텍스트 수직 정렬 개선 */
-}
