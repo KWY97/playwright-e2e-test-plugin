@@ -1,4 +1,4 @@
-package io.jenkins.extensions.dto;
+package io.jenkins.plugins.playwright_e2e.extensions.dto;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

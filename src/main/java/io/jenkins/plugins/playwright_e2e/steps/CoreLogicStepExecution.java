@@ -1,11 +1,11 @@
-package io.jenkins.plugins.steps;
+package io.jenkins.plugins.playwright_e2e.steps;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
-import io.jenkins.actions.BuildReportAction;
+import io.jenkins.plugins.playwright_e2e.actions.BuildReportAction;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;

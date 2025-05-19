@@ -1,4 +1,4 @@
-package io.jenkins.actions;
+package io.jenkins.plugins.playwright_e2e.actions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Run;

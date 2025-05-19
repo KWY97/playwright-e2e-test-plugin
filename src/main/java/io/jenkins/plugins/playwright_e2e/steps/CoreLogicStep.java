@@ -1,4 +1,4 @@
-package io.jenkins.plugins.steps;
+package io.jenkins.plugins.playwright_e2e.steps;
 
 import hudson.Extension;
 import hudson.FilePath;
@@ -85,4 +85,3 @@ public class CoreLogicStep extends Step {
 
     }
 }
-

@@ -1,11 +1,11 @@
-package io.jenkins.extensions;
+package io.jenkins.plugins.playwright_e2e.extensions;
 
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.DirectoryBrowserSupport;
 import hudson.model.RootAction;
-import io.jenkins.extensions.dto.BuildEntry;
-import io.jenkins.extensions.dto.ReportDetail;
+import io.jenkins.plugins.playwright_e2e.extensions.dto.BuildEntry;
+import io.jenkins.plugins.playwright_e2e.extensions.dto.ReportDetail;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;

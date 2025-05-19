@@ -1,9 +1,9 @@
-package io.jenkins.extensions;
+package io.jenkins.plugins.playwright_e2e.extensions;
 
 import hudson.Extension;
 import hudson.model.RootAction;
-import io.jenkins.extensions.dto.ScriptEntry;
-import io.jenkins.extensions.dto.ScriptModel;
+import io.jenkins.plugins.playwright_e2e.extensions.dto.ScriptEntry;
+import io.jenkins.plugins.playwright_e2e.extensions.dto.ScriptModel;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.interceptor.RequirePOST;
