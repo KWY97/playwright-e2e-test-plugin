@@ -1,0 +1,17 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="lib/layout">
+    <l:layout title="MCP E2E Test Reports" permission="${app.ADMINISTER}">
+        <l:main-panel>
+            <h1>Playwright E2E 테스트 보고서 안내</h1>
+            <p>
+                Playwright E2E 테스트의 상세 보고서는 각 빌드 결과 페이지 내의 'E2E 테스트 보고서' 링크를 통해 확인하실 수 있습니다.
+            </p>
+            <p>
+                이전 버전에서 제공되던 전역 결과 폴더(<code>JENKINS_HOME/results</code>)는 더 이상 사용되지 않으며, 모든 테스트 결과는 각 빌드의 작업 공간 내에 아티팩트로 저장되고 관리됩니다.
+            </p>
+            <p>
+                보고서를 확인하시려면 해당 Job의 특정 빌드로 이동하여 사이드바 메뉴 또는 빌드 결과 요약에서 관련 링크를 찾아주세요.
+            </p>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

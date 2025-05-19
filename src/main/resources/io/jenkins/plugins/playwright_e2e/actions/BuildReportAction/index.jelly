@@ -1,0 +1,24 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="lib/layout" xmlns:st="jelly:stapler">
+    <l:layout title="E2E 테스트 보고서 (${it.scriptPath})" permission="${app.ADMINISTER}">
+        <l:breadcrumb title="E2E 테스트 보고서 (${it.scriptPath})" href="../"/>
+        <l:main-panel>
+            <h1>E2E 테스트 보고서: ${it.scriptPath}</h1>
+            <p><strong>상태:</strong> ${it.status}</p>
+            <p><strong>실행 시각:</strong> ${it.timestamp.toString()}</p>
+            <j:set var="artifactPath" value="${it.reportArtifactPath}"/>
+            <j:if test="${artifactPath != null}">
+                <div style="margin-top: 20px;">
+                    <iframe src="${rootURL}/${run.url}artifact/${artifactPath}"
+                            style="width: 100%; height: 80vh; border: 1px solid #ccc;"
+                            title="Test Report"/>
+                </div>
+            </j:if>
+            <j:if test="${artifactPath == null}">
+                <p style="color: red; margin-top: 20px;">
+                    보고서 파일을 찾을 수 없습니다. (uniqueRunId가 설정되지 않았거나 아티팩트가 없습니다.)
+                </p>
+            </j:if>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

@@ -17,6 +17,8 @@ The following items must be installed:
 - Python 3.12
 - Node.js (latest recommended)
 
+**Important Note:** Currently, this plugin is only confirmed to work on **Linux-based Jenkins environments**. Windows is not yet supported due to the use of shell-specific commands (e.g., `sed`, `bash`, `source`).
+
 ### ⚙️ Environment Setup
 
 - Configure the plugin environment
