@@ -39,10 +39,10 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
     @Override
     protected Void run() throws Exception {
-        // 1) 워크스페이스 및 Python 디렉터리 준비
+        // 1) Prepare workspace and Python directory
         FilePath workspace = getContext().get(FilePath.class);
         if (workspace == null) {
-            throw new IllegalStateException("워크스페이스를 가져올 수 없습니다");
+            throw new IllegalStateException("Could not get workspace");
         }
         FilePath pythonDir = workspace.child("resources/python");
         pythonDir.mkdirs();
@@ -50,7 +50,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         TaskListener listener = getContext().get(TaskListener.class);
         Run<?, ?> run = getContext().get(Run.class);
 
-        // 2) Secret File Credentials 조회 및 .env 복사
+        // 2) Retrieve Secret File Credentials and copy .env
         FileCredentials envCred = CredentialsProvider.findCredentialById(
                 step.getEnvFileCredentialsId(),
                 FileCredentials.class,
@@ -58,7 +58,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 Collections.emptyList()
         );
         if (envCred == null) {
-            listener.error("❌ credentialsId='" + step.getEnvFileCredentialsId() + "'에 해당하는 Secret File 크리덴셜을 찾을 수 없습니다.");
+            listener.error("❌ Could not find Secret File credential with ID '" + step.getEnvFileCredentialsId() + "'.");
             return null;
         }
         byte[] content;
@@ -67,16 +67,16 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         FilePath envFile = pythonDir.child(".env");
         envFile.write(new String(content, StandardCharsets.UTF_8), "UTF-8");
-        listener.getLogger().println("✅ .env 파일을 " + envFile.getRemote() + "에 복사했습니다.");
+        listener.getLogger().println("✅ Copied .env file to " + envFile.getRemote());
 
         try {
-            // 3) 번들된 Python 스크립트 추출
-            listener.getLogger().println("▶ 번들된 Python 스크립트 추출 시작");
+            // 3) Extract bundled Python scripts
+            listener.getLogger().println("▶ Starting extraction of bundled Python scripts...");
             extractResources("python", pythonDir, listener);
-            listener.getLogger().println("▶ 스크립트 추출 완료");
+            listener.getLogger().println("▶ Script extraction complete.");
 
-            // 3.5) setup.sh CRLF 제거 (dos2unix 대체)
-            listener.getLogger().println("▶ setup.sh CRLF 제거 시작");
+            // 3.5) Remove CRLF from setup.sh (alternative to dos2unix)
+            listener.getLogger().println("▶ Starting CRLF removal from setup.sh...");
             ProcessBuilder pbClean = new ProcessBuilder(
                     "sed", "-i", "s/\\r$//", "setup.sh"
             );
@@ -93,43 +93,43 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 }
                 int exitCode = procClean.waitFor();
                 if (exitCode != 0) {
-                    listener.error("❌ setup.sh CRLF 제거 실패 (exit=" + exitCode + ")");
+                    listener.error("❌ Failed to remove CRLF from setup.sh (exit=" + exitCode + ")");
                 } else {
-                    listener.getLogger().println("✅ setup.sh CRLF 제거 완료");
+                    listener.getLogger().println("✅ CRLF removal from setup.sh complete.");
                 }
             } catch (IOException | InterruptedException e) {
-                listener.error("❌ setup.sh CRLF 제거 중 예외 발생: " + e.getMessage());
+                listener.error("❌ Exception during CRLF removal from setup.sh: " + e.getMessage());
             }
 
-            // 4) 시나리오 파일 로드 (JENKINS_HOME/scripts)
+            // 4) Load scenario file (from JENKINS_HOME/scripts)
             String scenarioName = step.getInput();
             if (!scenarioName.endsWith(".json")) scenarioName += ".json";
             File jenkinsHome = Jenkins.get().getRootDir();
-            File scriptsDir = new File(jenkinsHome, "scripts");
+            File scriptsDir = new File(jenkinsHome, "scripts"); // Admin attention needed for this directory
             File scenarioFile = new File(scriptsDir, scenarioName);
 
-            // Path Traversal 방지: 요청된 파일이 scriptsDir 내에 있는지 확인
+            // Prevent Path Traversal: Check if the requested file is within scriptsDir
             if (!scenarioFile.getCanonicalPath().startsWith(scriptsDir.getCanonicalPath() + File.separator)) {
-                listener.error("❌ 잘못된 시나리오 파일 경로입니다 (Path Traversal 시도 감지): " + scenarioName);
-                throw new IllegalArgumentException("잘못된 시나리오 파일 경로입니다: " + scenarioName);
+                listener.error("❌ Invalid scenario file path (Path Traversal attempt detected): " + scenarioName);
+                throw new IllegalArgumentException("Invalid scenario file path: " + scenarioName);
             }
 
             if (!scenarioFile.exists()) {
-                throw new IllegalArgumentException("시나리오 파일이 없습니다: " + scenarioFile);
+                throw new IllegalArgumentException("Scenario file not found: " + scenarioFile);
             }
-            listener.getLogger().println("▶ 시나리오 로드: " + scenarioName);
+            listener.getLogger().println("▶ Loading scenario: " + scenarioName);
             String scenarioContent = new String(
                     Files.readAllBytes(scenarioFile.toPath()), StandardCharsets.UTF_8
             );
             listener.getLogger().println(scenarioContent);
 
-            // 5) setup.sh 권한 변경
+            // 5) Change permissions for setup.sh
             FilePath setupSh = pythonDir.child("setup.sh");
-            listener.getLogger().println("▶ setup.sh chmod 0755 …");
+            listener.getLogger().println("▶ chmod 0755 for setup.sh ...");
             setupSh.chmod(0755);
 
-            // 6) setup 스크립트 실행
-            listener.getLogger().println("▶ setup 스크립트 실행...");
+            // 6) Execute setup script
+            listener.getLogger().println("▶ Executing setup script...");
             ProcessBuilder pbSetup = new ProcessBuilder("bash", "setup.sh")
                     .directory(new File(pythonDir.getRemote()))
                     .redirectErrorStream(true);
@@ -142,12 +142,12 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 }
             }
             if (setupProc.waitFor() != 0) {
-                throw new IllegalStateException("setup 스크립트 실행 실패");
+                throw new IllegalStateException("Setup script execution failed");
             }
-            listener.getLogger().println("▶ setup 완료");
+            listener.getLogger().println("▶ Setup complete.");
 
-            // 7) Python 테스트 실행
-            listener.getLogger().println("▶ Python 테스트 실행: main_logic.py (activate venv)");
+            // 7) Execute Python test
+            listener.getLogger().println("▶ Executing Python test: main_logic.py (activate venv)");
             String buildNumber = String.valueOf(run.getNumber());
 
             FilePath baseWorkspaceResultsDir = workspace.child("playwright-e2e-results");
@@ -158,10 +158,10 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             currentRunResultsDir.mkdirs();
             String currentRunResultsDirRemotePath = currentRunResultsDir.getRemote();
 
-            listener.getLogger().println("▶ 결과 저장 디렉토리: " + currentRunResultsDirRemotePath);
+            listener.getLogger().println("▶ Results directory: " + currentRunResultsDirRemotePath);
 
             listener.getLogger().println(
-                    String.format("▶ 인자: --file %s --build %s --output_dir %s",
+                    String.format("▶ Arguments: --file %s --build %s --output_dir %s",
                             scenarioFile.getAbsolutePath(), buildNumber, currentRunResultsDirRemotePath
                     )
             );
@@ -184,16 +184,16 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 }
             }
             int runExit = runProc.waitFor();
-            listener.getLogger().println("▶ 테스트 종료 (exit=" + runExit + ")");
+            listener.getLogger().println("▶ Test execution finished (exit=" + runExit + ")");
             String result = runExit == 0 ? "SUCCESS" : "FAIL";
-            run.addAction(new BuildReportAction(scenarioName, result, uniqueRunId)); // uniqueRunId 전달
+            run.addAction(new BuildReportAction(scenarioName, result, uniqueRunId)); // Pass uniqueRunId
             run.save();
 
         } finally {
-            // 8) 항상 .env 파일 삭제
-            listener.getLogger().println("▶ .env 파일 삭제: " + envFile.getRemote());
+            // 8) Always delete .env file
+            listener.getLogger().println("▶ Deleting .env file: " + envFile.getRemote());
             if (!envFile.delete()) {
-                listener.getLogger().println("⚠️ .env 파일 삭제에 실패했습니다.");
+                listener.getLogger().println("⚠️ Failed to delete .env file.");
             }
         }
 
@@ -203,7 +203,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
     private void extractResources(String resourcePath, FilePath targetDir, TaskListener listener) throws IOException {
         ClassLoader cl = getClass().getClassLoader();
         URL dirURL = cl.getResource(resourcePath);
-        if (dirURL == null) throw new IOException("리소스 경로를 찾을 수 없습니다: " + resourcePath);
+        if (dirURL == null) throw new IOException("Resource path not found: " + resourcePath);
         if ("file".equals(dirURL.getProtocol())) {
             try {
                 Path src = Paths.get(dirURL.toURI());
@@ -213,21 +213,21 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                         File dest = new File(targetDir.getRemote(), rel.toString());
                         if (Files.isDirectory(path)) {
                             if (!dest.mkdirs() && !dest.isDirectory()) {
-                                listener.getLogger().println("디렉터리 생성 실패: " + dest);
+                                listener.getLogger().println("Failed to create directory: " + dest);
                             }
                         } else {
                             File parent = dest.getParentFile();
                             if (parent != null && !parent.exists() && !parent.mkdirs()) {
-                                listener.getLogger().println("디렉터리 생성 실패: " + parent);
+                                listener.getLogger().println("Failed to create parent directory: " + parent);
                             }
-                            Files.copy(path, dest.toPath());
+                            Files.copy(path, dest.toPath()); // Consider StandardCopyOption.REPLACE_EXISTING
                         }
                     } catch (Exception e) {
-                        listener.getLogger().println("리소스 복사 오류: " + e.getMessage());
+                        listener.getLogger().println("Error copying resource: " + e.getMessage());
                     }
                 });
             } catch (URISyntaxException e) {
-                throw new IOException("리소스 경로 URI 변환 실패", e);
+                throw new IOException("Failed to convert resource path URI", e);
             }
         } else if ("jar".equals(dirURL.getProtocol())) {
             String jarPath = dirURL.getPath().substring(5, dirURL.getPath().indexOf("!"));
@@ -241,12 +241,12 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                     File out = new File(targetDir.getRemote(), rel);
                     if (entry.isDirectory()) {
                         if (!out.mkdirs() && !out.isDirectory()) {
-                            listener.getLogger().println("디렉터리 생성 실패: " + out);
+                            listener.getLogger().println("Failed to create directory: " + out);
                         }
                     } else {
                         File parent = out.getParentFile();
                         if (parent != null && !parent.exists() && !parent.mkdirs()) {
-                            listener.getLogger().println("디렉터리 생성 실패: " + parent);
+                            listener.getLogger().println("Failed to create parent directory: " + parent);
                         }
                         try (InputStream in = jar.getInputStream(entry);
                              OutputStream os = new FileOutputStream(out)) {
@@ -256,7 +256,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                 }
             }
         } else {
-            throw new IOException("지원하지 않는 프로토콜: " + dirURL.getProtocol());
+            throw new IOException("Unsupported protocol: " + dirURL.getProtocol());
         }
     }
 }

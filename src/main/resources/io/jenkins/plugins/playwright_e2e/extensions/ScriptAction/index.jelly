@@ -1,0 +1,30 @@
+<?jelly escape-by-default='true' encoding='UTF-8'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="lib/layout">
+    <l:layout title="E2E Test Scripts">
+        <l:main-panel>
+            <h1>E2E Test Scripts</h1>
+            <!-- Button to create a new script: navigates to /jenkins/e2e-test-scripts/input -->
+            <a href="input" class="model-link">+ New Script</a>
+            <table class="pane sortable">
+                <thead>
+                    <tr>
+                        <th class="pane-header">Title</th>
+                        <th class="pane-header">Last Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Iterate over the ScriptEntry list in it.scripts -->
+                    <j:forEach items="${it.scripts}" var="s">
+                        <tr>
+                            <td>
+                                <!-- On click, pass fileName as ?script= parameter -->
+                                <a href="input?script=${s.fileName}">${s.title}</a>
+                            </td>
+                            <td>${s.modified}</td>
+                        </tr>
+                    </j:forEach>
+                </tbody>
+            </table>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

@@ -19,14 +19,14 @@ import java.util.*;
 
 @Extension
 public class ScriptAction implements RootAction {
-    @Override public String getIconFileName() { return "clipboard.png"; }
-    @Override public String getDisplayName()    { return "Scripts"; }
-    @Override public String getUrlName()        { return "scripts"; }
+    @Override public String getIconFileName() { return "notepad.png"; } // 아이콘 변경 제안
+    @Override public String getDisplayName()    { return "E2E Test Scripts"; }
+    @Override public String getUrlName()        { return "e2e-test-scripts"; }
 
     private File getDir() throws IOException {
-        File d = new File(Jenkins.get().getRootDir(), "scripts");
+        File d = new File(Jenkins.get().getRootDir(), "scripts"); // 이 디렉토리 사용은 여전히 관리자 주의 필요
         if (!d.exists() && (!d.mkdirs() && !d.exists())) {
-            throw new IOException("스크립트 저장 디렉터리를 생성하지 못했습니다: " + d.getAbsolutePath());
+            throw new IOException("Failed to create script storage directory: " + d.getAbsolutePath());
         }
         return d;
     }
@@ -57,22 +57,17 @@ public class ScriptAction implements RootAction {
     public void doSave(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException {
         
-        // RequirePost는 CSRF 공격은 막지만 Jenkins 사용자 권한 확인을 안함
-        // Jenkins 사용자 권한 확인 위해 추가한 코드
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER); // Admin permission check
         
-        // 한글 파라미터 깨짐 방지
-        req.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        req.setCharacterEncoding(StandardCharsets.UTF_8.name()); // Prevent broken characters for parameters
 
-        // JSON 파라미터 읽기
         String json = req.getParameter("jsonData");
-        ScriptModel model = ScriptModel.fromJson(json);
+        ScriptModel model = ScriptModel.fromJson(json); // Assuming ScriptModel.fromJson handles potential errors
 
-        // 파일명 생성
         String fileName = sanitize(model.getTitle()) + ".json";
         Path target = getDir().toPath().resolve(fileName);
 
-        // UTF-8로 JSON 쓰기, 한글 유니코드 이스케이프 비활성화
+        // Write JSON with UTF-8, disable ASCII escape for non-ASCII characters
         ObjectMapper mapper = new ObjectMapper();
         mapper.getFactory().configure(JsonGenerator.Feature.ESCAPE_NON_ASCII, false);
 
@@ -84,8 +79,7 @@ public class ScriptAction implements RootAction {
             mapper.writerWithDefaultPrettyPrinter().writeValue(writer, model);
         }
 
-        // 저장 후 목록으로 리다이렉트
-        rsp.sendRedirect2(Jenkins.get().getRootUrl() + getUrlName());
+        rsp.sendRedirect2(Jenkins.get().getRootUrl() + getUrlName()); // Redirect to list after save
     }
 
     private ScriptModel load(File f) {

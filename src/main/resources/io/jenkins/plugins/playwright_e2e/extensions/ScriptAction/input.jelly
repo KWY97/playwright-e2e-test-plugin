@@ -1,0 +1,99 @@
+<?jelly escape-by-default='true' encoding='UTF-8'?>
+<j:jelly xmlns:j="jelly:core"
+         xmlns:st="jelly:stapler"
+         xmlns:l="/lib/layout"
+         xmlns:f="/lib/form">
+
+    <l:layout title="${m.title ?: 'New E2E Test Script'}" permission="ADMINISTER">
+        <!-- Preserve Jenkins default head (crumb meta, etc.)
+             and append additional resources using l:head -->
+        <l:head>
+            <!-- Can also be included as raw HTML -->
+            <link rel="stylesheet"
+                  href="${rootURL}/plugin/playwright-e2e-test/io/jenkins/plugins/playwright_e2e/extensions/ScriptAction/input.css"
+                  type="text/css"/>
+            <script src="${rootURL}/plugin/playwright-e2e-test/io/jenkins/plugins/playwright_e2e/extensions/ScriptAction/input.js"
+                    type="text/javascript"></script>
+        </l:head>
+
+        <l:main-panel>
+            <!-- ① Load server model -->
+            <j:set var="m" value="${it.getIt(request.getParameter('script'))}"/>
+
+            <h1 style="margin-bottom:24px;">
+                ${m.title ?: 'New E2E Test Script'}
+            </h1>
+
+            <!-- ② CSRF crumb is automatically handled by crumb="true" -->
+            <f:form method="post" action="save" crumb="true">
+                <!-- ③ Title -->
+                <f:entry title="Script Title">
+                    <f:textbox name="title"
+                               id="scriptTitle"
+                               style="width:100%;"
+                               value="${m.title}"/>
+                </f:entry>
+
+                <!-- ④ Hidden template -->
+                <div id="scenario-template" style="display:none">
+                    <div class="scenario">
+                        <div>
+                            <label>Scenario Title:
+                                <input type="text" class="sc-title"/>
+                            </label>
+                        </div>
+                        <div class="steps">
+                            <div>
+                                <label>Step:
+                                    <input type="text" class="st-text"/>
+                                </label>
+                                <button type="button" class="del-step">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-step">+ Add Step</button>
+                        <button type="button" class="del-scenario">✕ Delete Scenario</button>
+                    </div>
+                </div>
+
+                <!-- ⑤ Render existing scenarios -->
+                <div id="editor">
+                    <j:forEach items="${m.scenarios}" var="sc">
+                        <div class="scenario">
+                            <div>
+                                <label>Scenario Title:
+                                    <input type="text" class="sc-title" value="${sc.title}"/>
+                                </label>
+                            </div>
+                            <div class="steps">
+                                <j:forEach items="${sc.steps}" var="st">
+                                    <div>
+                                        <label>Step:
+                                            <input type="text" class="st-text" value="${st}"/>
+                                        </label>
+                                        <button type="button" class="del-step">✕</button>
+                                    </div>
+                                </j:forEach>
+                            </div>
+                            <button type="button" class="add-step">+ Add Step</button>
+                            <button type="button" class="del-scenario">✕ Delete Scenario</button>
+                        </div>
+                    </j:forEach>
+                </div>
+
+                <!-- ⑥ Add new scenario -->
+                <button type="button" id="addScenario">+ Add Scenario</button>
+
+                <!-- ⑦ JSON field for saving -->
+                <input type="hidden" name="jsonData" id="jsonData"/>
+
+                <!-- ⑧ Save button -->
+                <button type="submit" id="saveButton">Save</button>
+            </f:form>
+
+            <!-- ⑨ Inject server model as JSON -->
+            <script id="modelData" type="application/json">
+                ${m.toJson()}
+            </script>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

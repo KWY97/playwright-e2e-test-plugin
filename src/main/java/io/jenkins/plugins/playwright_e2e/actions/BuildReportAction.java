@@ -56,7 +56,7 @@ public class BuildReportAction implements RunAction2 {
 
     @Override
     public String getDisplayName() {
-        return "E2E 테스트 보고서"; // 빌드 사이드바에 표시될 이름
+        return "E2E Test Report"; // 빌드 사이드바에 표시될 이름
     }
 
     @Override

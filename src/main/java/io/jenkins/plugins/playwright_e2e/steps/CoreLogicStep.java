@@ -27,7 +27,7 @@ import java.util.Set;
 
 public class CoreLogicStep extends Step {
     private final String input;
-    /** .env 파일을 저장해 둔 File Credential의 ID */
+    /** Credentials ID for the .env file stored as a File Credential */
     private String envFileCredentialsId;
 
     @DataBoundConstructor
