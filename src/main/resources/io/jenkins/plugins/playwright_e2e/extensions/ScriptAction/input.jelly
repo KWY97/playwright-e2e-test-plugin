@@ -47,11 +47,17 @@
                                 <label>Step:
                                     <input type="text" class="st-text"/>
                                 </label>
-                                <button type="button" class="del-step">✕</button>
+                                <button type="button" class="jenkins-button jenkins-button--small del-step">
+                                    <l:icon src="symbol-trash" class="icon-trash"/> Delete Step
+                                </button>
                             </div>
                         </div>
-                        <button type="button" class="add-step">+ Add Step</button>
-                        <button type="button" class="del-scenario">✕ Delete Scenario</button>
+                        <button type="button" class="jenkins-button add-step">
+                            <l:icon src="symbol-add" class="icon-add"/> Add Step
+                        </button>
+                        <button type="button" class="jenkins-button jenkins-button--danger del-scenario">
+                            <l:icon src="symbol-trash" class="icon-trash"/> Delete Scenario
+                        </button>
                     </div>
                 </div>
 
@@ -70,24 +76,36 @@
                                         <label>Step:
                                             <input type="text" class="st-text" value="${st}"/>
                                         </label>
-                                        <button type="button" class="del-step">✕</button>
+                                        <button type="button" class="jenkins-button jenkins-button--small del-step">
+                                            <l:icon src="symbol-trash" class="icon-trash"/> Delete Step
+                                        </button>
                                     </div>
                                 </j:forEach>
                             </div>
-                            <button type="button" class="add-step">+ Add Step</button>
-                            <button type="button" class="del-scenario">✕ Delete Scenario</button>
+                            <button type="button" class="jenkins-button add-step">
+                                <l:icon src="symbol-add" class="icon-add"/> Add Step
+                            </button>
+                            <button type="button" class="jenkins-button jenkins-button--danger del-scenario">
+                                <l:icon src="symbol-trash" class="icon-trash"/> Delete Scenario
+                            </button>
                         </div>
                     </j:forEach>
                 </div>
 
                 <!-- ⑥ Add new scenario -->
-                <button type="button" id="addScenario">+ Add Scenario</button>
+                <div style="margin-top: 1em; margin-bottom: 1em;">
+                    <button type="button" id="addScenario" class="jenkins-button">
+                        <l:icon src="symbol-add" class="icon-add"/> Add Scenario
+                    </button>
+                </div>
 
                 <!-- ⑦ JSON field for saving -->
                 <input type="hidden" name="jsonData" id="jsonData"/>
 
                 <!-- ⑧ Save button -->
-                <button type="submit" id="saveButton">Save</button>
+                <f:bottomButtonBar>
+                    <f:submit value="Save" id="saveButton"/>
+                </f:bottomButtonBar>
             </f:form>
 
             <!-- ⑨ Inject server model as JSON -->

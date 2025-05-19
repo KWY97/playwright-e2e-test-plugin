@@ -250,91 +250,123 @@ def generate_combined_html_report(
     passed_steps = sum(1 for _, r, _ in results if r.status)
     failed_steps = total_steps - passed_steps
 
-    # Inline CSS to embed directly in the HTML
+    # Inline CSS to embed directly in the HTML, inspired by Jenkins Design Library
     css = '''
-/* Reset */
+:root {
+  --jenkins-font-family: sans-serif;
+  --jenkins-bg: #f0f0f0;
+  --jenkins-pane-bg: #fff;
+  --jenkins-pane-border-color: #ddd;
+  --jenkins-table-border-color: #ccc;
+  --jenkins-text-color: #333;
+  --jenkins-link-color: #007bff;
+  --jenkins-button-bg: #007bff;
+  --jenkins-button-text-color: #fff;
+  --jenkins-success-color: #28a745;
+  --jenkins-danger-color: #dc3545;
+  --jenkins-warning-color: #ffc107;
+  --jenkins-info-color: #17a2b8;
+  --jenkins-border-radius: .25rem;
+  --jenkins-box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+}
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 body {
-  font-family: "Segoe UI", Tahoma, sans-serif;
-  background: #f9f9f9;
-  color: #333;
+  font-family: var(--jenkins-font-family);
+  background: var(--jenkins-bg);
+  color: var(--jenkins-text-color);
   padding: 20px;
+  line-height: 1.5;
 }
-
-/* 헤더 */
-.header {
-  background: #4a90e2;
-  color: white;
+.jenkins-pane { /* Mimicking Jenkins pane */
+  background: var(--jenkins-pane-bg);
+  border: 1px solid var(--jenkins-pane-border-color);
+  border-radius: var(--jenkins-border-radius);
   padding: 20px;
-  border-radius: 8px;
   margin-bottom: 20px;
+  box-shadow: var(--jenkins-box-shadow);
 }
 .header h1 {
   font-size: 1.8rem;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
+  color: var(--jenkins-text-color);
 }
 .header p {
-  opacity: 0.9;
+  margin-bottom: 5px;
 }
-
-/* 요약 */
 .summary {
   display: flex;
-  gap: 15px;
+  gap: 20px; /* Increased gap */
   margin-bottom: 30px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 .summary div {
-  background: white;
-  padding: 10px 15px;
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--jenkins-pane-bg);
+  padding: 15px; /* Increased padding */
+  border-radius: var(--jenkins-border-radius);
+  border: 1px solid var(--jenkins-pane-border-color);
+  box-shadow: var(--jenkins-box-shadow);
+  flex: 1; /* Distribute space */
+  min-width: 150px; /* Minimum width for summary items */
 }
-
-/* 시나리오 카드 */
-.step {
-  background: white;
-  border-radius: 8px;
-  padding: 15px 20px;
-  margin-top: 15px;
+.summary h2 {
+    width: 100%;
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+.scenario-card { /* Renamed from .step to avoid conflict with Jenkins step styles */
+  background: var(--jenkins-pane-bg);
+  border-radius: var(--jenkins-border-radius);
+  padding: 20px;
   margin-bottom: 25px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s;
+  border-left: 5px solid var(--jenkins-info-color); /* Default border */
+  box-shadow: var(--jenkins-box-shadow);
 }
-.step.success {
-  border-left: 6px solid #28a745;
+.scenario-card.success {
+  border-left-color: var(--jenkins-success-color);
 }
-.step.failed {
-  border-left: 6px solid #dc3545;
-  background: #fcebea;
+.scenario-card.failed {
+  border-left-color: var(--jenkins-danger-color);
+  background-color: #fff7f7; /* Light red background for failed scenarios */
 }
-
-/* 서브스텝 */
+.scenario-card h3 {
+    margin-bottom: 10px;
+    font-size: 1.25rem;
+}
+.scenario-card h4 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+}
 .substeps {
   margin-top: 15px;
+  padding-left: 15px;
+  border-left: 2px solid #eee;
 }
-.substep {
-  background: #f7f9fc;
-  padding: 12px;
-  border-radius: 6px;
+.substep-item { /* Renamed from .substep */
+  background: #f9f9f9; /* Slightly different background for substeps */
+  padding: 10px;
+  border-radius: var(--jenkins-border-radius);
   margin-bottom: 10px;
-  border-left: 4px solid #777;
+  border: 1px solid #e0e0e0;
 }
-.substep.success {
-  border-color: #28a745;
+.substep-item.success {
+  border-left: 3px solid var(--jenkins-success-color);
 }
-.substep.failed {
-  border-color: #dc3545;
+.substep-item.failed {
+  border-left: 3px solid var(--jenkins-danger-color);
 }
-.substep p {
-  margin: 4px 0;
-  font-size: 0.95rem;
+.substep-item p {
+  margin: 5px 0;
+  font-size: 0.9rem;
 }
-
-/* 스크린샷 갤러리 */
+.fail-reason {
+    color: var(--jenkins-danger-color);
+    font-weight: bold;
+}
 .screenshots {
   display: flex;
   flex-wrap: wrap;
@@ -342,15 +374,19 @@ body {
   margin-top: 15px;
 }
 .screenshots img {
-  width: calc(33.333% - 10px);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  max-width: 200px; /* Limit screenshot preview size */
+  height: auto;
+  border-radius: var(--jenkins-border-radius);
+  border: 1px solid var(--jenkins-pane-border-color);
+  box-shadow: var(--jenkins-box-shadow);
+  cursor: pointer; /* Indicate they are clickable if you add zoom later */
 }
-
-/* 반응형 */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .summary {
+    flex-direction: column;
+  }
   .screenshots img {
-    width: 100%;
+    max-width: 100%; /* Full width on smaller screens */
   }
 }
 '''
@@ -366,53 +402,53 @@ body {
     </style>
 </head>
 <body>
-    <div class="header">
+    <div class="jenkins-pane header">
         <h1>Test Execution Report</h1>
         <p>Executed At: {test_start.strftime('%Y-%m-%d %H:%M:%S')}</p>
         <p>Duration: {test_duration_ms/1000:.2f}s</p>
     </div>
     
-    <div class="summary">
+    <div class="jenkins-pane summary">
         <h2>Summary</h2>
-        <p>Total Scenarios: {total_steps}</p>
-        <p>Passed: {passed_steps}</p>
-        <p>Failed: {failed_steps}</p>
+        <div>Total Scenarios: {total_steps}</div>
+        <div>Passed: {passed_steps}</div>
+        <div>Failed: {failed_steps}</div>
     </div>
     
-    <div class="steps">
+    <div>
         <h2>Detailed Scenarios</h2>
 """
 
     # Scenario-specific blocks
     for idx, res, screenshots in results:
-        status_str = "success" if res.status else "failed"
-        html += f"""        <div class="step {status_str}">
+        status_class = "success" if res.status else "failed"
+        html += f"""        <div class="scenario-card {status_class}">
             <h3>Scenario {idx}: {res.title}</h3>
-            <p>Status: {'PASSED' if res.status else 'FAILED'}</p>
+            <p>Status: <strong>{'PASSED' if res.status else 'FAILED'}</strong></p>
             <p>Duration: {res.duration:.2f}s</p>
-            <h4>Scenario Feedback</h4>
+            <h4>Scenario Feedback:</h4>
             <p>{res.feedback}</p>
 """
 
         # (Optional) Scenario-level failure reasons
         if res.fail:
-            html += "            <div class='fail'><h5>Fail Reasons</h5><ul>\n"
+            html += "            <div class='fail-reason'><h5>Overall Failure Reasons:</h5><ul>\n"
             for fs in res.fail:
                 html += f"                <li>Step {fs.num}: {fs.message}</li>\n"
             html += "            </ul></div>\n"
 
         # **Add substep output per step**
         html += "            <div class='substeps'>\n"
-        html += "                <h4>Detailed Step Results</h4>\n"
+        html += "                <h4>Detailed Step Results:</h4>\n"
         for step_result_item in res.steps: # Renamed 'step' to 'step_result_item' to avoid conflict
-            sc = "success" if step_result_item.status else "failed"
-            html += f"""                <div class="substep {sc}">
+            sub_status_class = "success" if step_result_item.status else "failed"
+            html += f"""                <div class="substep-item {sub_status_class}">
                     <p><strong>Step {step_result_item.num}:</strong> {step_result_item.action}</p>
                     <p>Status: {'✅ PASSED' if step_result_item.status else '❌ FAILED'}</p>
                     <p>Feedback: {step_result_item.feedback}</p>
             """
             if step_result_item.fail:
-                html += f"                    <p>Failure Reason: {step_result_item.fail}</p>\n"
+                html += f"                    <p class='fail-reason'>Failure Reason: {step_result_item.fail}</p>\n"
             html += "                </div>\n"
         html += "            </div>\n"
 

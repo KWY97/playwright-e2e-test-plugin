@@ -19,6 +19,9 @@ The following items must be installed:
 
 **Important Note:** Currently, this plugin is only confirmed to work on **Linux-based Jenkins environments**. Windows is not yet supported due to the use of shell-specific commands (e.g., `sed`, `bash`, `source`).
 
+- **Playwright System Dependencies:** This plugin uses Playwright for browser automation. Playwright requires certain system-level dependencies to function correctly. The `setup.sh` script (executed by the plugin) attempts to install Playwright browsers but skips the installation of system-wide dependencies (`npx playwright install-deps`) as this typically requires `sudo` privileges, which may not be available on Jenkins agents.
+  - **Action Required:** You must ensure that all necessary system dependencies for Playwright are pre-installed on your Jenkins agents or within the Docker image used for your agents. Please refer to the official [Playwright documentation on system dependencies](https://playwright.dev/docs/intro#system-requirements) for the specific packages required for your Linux distribution. Failure to pre-install these may result in errors during the `npx playwright install --with-deps chromium` step or when tests are run.
+
 ### ⚙️ Environment Setup
 
 - Configure the plugin environment
@@ -57,6 +60,14 @@ LLM_API_KEY={API key}
 **GPT:** gpt-4o, gpt-4o-mini
 
 - The .env file contents (especially LLM_API_KEY) should be registered as Jenkins credentials for secure storage and use within the plugin configuration.
+
+### Managing Scenario Files (`JENKINS_HOME/scripts`)
+
+This plugin reads E2E test scenario files (JSON format) from the `JENKINS_HOME/scripts` directory on the Jenkins controller.
+
+- **Responsibility:** Jenkins administrators are responsible for placing and managing scenario files in this directory.
+- **Security Note:** Since these files are read from the Jenkins controller's filesystem, ensure that only authorized personnel have write access to the `JENKINS_HOME/scripts` directory to prevent potential security risks. The plugin includes path traversal protection, but proper directory permissions are crucial.
+- **File Naming:** When using the `runCoreLogic` step, you provide the `input` parameter, which should be the title of your script (e.g., `my_test_scenario`). The plugin will look for a file named `my_test_scenario.json` in the `JENKINS_HOME/scripts` directory. You can also create and manage these scenario files through the "E2E Test Scripts" link in the Jenkins main sidebar, which provides a UI for editing these JSON files.
 
 ### How to Use the Plugin
 

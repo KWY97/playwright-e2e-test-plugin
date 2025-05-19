@@ -4,12 +4,16 @@
         <l:main-panel>
             <h1>E2E Test Scripts</h1>
             <!-- Button to create a new script: navigates to /jenkins/e2e-test-scripts/input -->
-            <a href="input" class="model-link">+ New Script</a>
-            <table class="pane sortable">
+            <div style="margin-bottom: 1em;">
+                <a href="input" class="jenkins-button jenkins-button--primary">
+                    <l:icon src="symbol-new-item" class="icon-new-item"/> New Script
+                </a>
+            </div>
+            <table class="jenkins-table sortable">
                 <thead>
                     <tr>
-                        <th class="pane-header">Title</th>
-                        <th class="pane-header">Last Modified</th>
+                        <th class="jenkins-table__header">Title</th>
+                        <th class="jenkins-table__header">Last Modified</th>
                     </tr>
                 </thead>
                 <tbody>
