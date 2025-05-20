@@ -100,12 +100,13 @@ public class ScriptAction implements RootAction {
     }
 
     @RequirePOST
-    public HttpResponse doDeleteScript(@QueryParameter String scriptName) throws IOException {
+    public void doDeleteScript(StaplerRequest req, StaplerResponse rsp, @QueryParameter String scriptName) throws IOException, ServletException {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
         if (scriptName == null || scriptName.isEmpty() || scriptName.contains("..") || scriptName.contains("/") || scriptName.contains("\\")) {
             LOGGER.log(Level.WARNING, "Invalid script name for deletion: {0}", scriptName);
-            return HttpResponses.error(400, "Invalid script name.");
+            rsp.sendError(400, "Invalid script name.");
+            return;
         }
 
         File scriptFile = new File(getDir(), scriptName);
@@ -113,16 +114,21 @@ public class ScriptAction implements RootAction {
         if (!scriptFile.exists() || !scriptFile.isFile() || !scriptFile.getName().endsWith(".json")
                 || !scriptFile.getCanonicalPath().startsWith(getDir().getCanonicalPath() + File.separator)) {
             LOGGER.log(Level.WARNING, "Script file not found or invalid for deletion: {0}", scriptName);
-            return HttpResponses.error(404, "Script not found or invalid.");
+            rsp.sendError(404, "Script not found or invalid.");
+            return;
         }
 
         LOGGER.log(Level.INFO, "Attempting to delete script: {0}", scriptFile.getAbsolutePath());
         if (scriptFile.delete()) {
             LOGGER.log(Level.INFO, "Successfully deleted script: {0}", scriptName);
-            return HttpResponses.ok();
+            // Redirect back to the script list page
+            rsp.sendRedirect2(Jenkins.get().getRootUrl() + getUrlName());
         } else {
             LOGGER.log(Level.SEVERE, "Failed to delete script: {0}", scriptName);
-            return HttpResponses.error(500, "Failed to delete script.");
+            // Send an error response, or redirect with an error parameter
+            rsp.sendError(500, "Failed to delete script: " + scriptName);
+            // Alternatively, redirect with a query parameter:
+            // rsp.sendRedirect2(Jenkins.get().getRootUrl() + getUrlName() + "?error=deleteFailed&script=" + scriptName);
         }
     }
 }
