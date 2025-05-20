@@ -87,15 +87,16 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         listener.getLogger().println("▶ Loading scenario: " + scenarioName);
 
-        // Q4: Change result storage location to build-specific artifact directory
-        File artifactsDir = run.getArtifactsDir();
-        File resultsDir = new File(artifactsDir, "playwright-e2e-results");
-        if (!resultsDir.exists() && !resultsDir.mkdirs()) {
-            // If resultsDir creation fails, it might be better to throw an exception or log a severe error.
-            // Here, only a warning is printed, but stopping execution might be safer in a real scenario.
-            listener.getLogger().println("▶ WARNING: Failed to create results directory in build artifacts: " + resultsDir.getAbsolutePath());
-            // throw new IOException("Failed to create results directory in build artifacts: " + resultsDir.getAbsolutePath());
+        // Q4: Change result storage location to JENKINS_HOME/results for GlobalReportAction
+        File jenkinsResultsDir = new File(Jenkins.get().getRootDir(), "results");
+        // Ensure the main results directory exists
+        if (!jenkinsResultsDir.exists() && !jenkinsResultsDir.mkdirs()) {
+            listener.getLogger().println("▶ WARNING: Failed to create Jenkins global results directory: " + jenkinsResultsDir.getAbsolutePath());
+            // Potentially throw an error here if this directory is critical
         }
+        // The python script will create a subdirectory inside this based on job name and build number.
+        // So, we pass jenkinsResultsDir as the base output directory to the script.
+        File resultsDir = jenkinsResultsDir; // This will be passed as --output_dir to main_logic.py
 
         // Q1 & Q3 Resolved: Read script content and copy to a temporary file in the workspace
         String scenarioContent = new String(Files.readAllBytes(scenarioFile.toPath()), StandardCharsets.UTF_8);
@@ -152,6 +153,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
             listener.getLogger().println("▶ Executing Python test: main_logic.py (activate venv)");
             String buildNumber = String.valueOf(run.getNumber());
+            String jobName = run.getParent().getFullName(); // Get the full job name
             String activateScript = new File(pythonDir.getRemote(), ".venv/bin/activate").getAbsolutePath();
             String cmd = String.join(" && ",
                     String.format("source %s", activateScript),
@@ -159,7 +161,16 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                             scenarioFilePath.getRemote(), buildNumber, resultsDir.getAbsolutePath() // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     )
             );
-            int testExit = executeShell(pythonDir, listener, launcher, cmd);
+            // Pass JOB_NAME to the python script environment
+            Launcher.ProcStarter procStarter = launcher.launch()
+                .cmds("bash", "-c", cmd)
+                .pwd(pythonDir)
+                .stdout(listener)
+                .stderr(listener.getLogger())
+                .envs("JOB_NAME=" + jobName) // Inject JOB_NAME environment variable
+                .quiet(true);
+
+            int testExit = procStarter.join();
             listener.getLogger().println("▶ Test finished (exit=" + testExit + ")");
 
             String result = testExit == 0 ? "SUCCESS" : "FAIL";
@@ -295,12 +306,14 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
     }
 
     private int executeShell(FilePath dir, TaskListener listener, Launcher launcher, String command) throws IOException, InterruptedException {
+        // This specific executeShell is used for setup.sh, npm install etc. which might not need JOB_NAME.
+        // The python execution is now handled directly in runPythonBranch with env var injection.
         Launcher.ProcStarter procStarter = launcher.launch()
                 .cmds("bash", "-c", command)
                 .pwd(dir)
                 .stdout(listener)
                 .stderr(listener.getLogger())
-                .quiet(true); // Do not print commands to the console
+                .quiet(true);
 
         return procStarter.join();
     }
