@@ -67,7 +67,7 @@ pipeline {
     stage('CoreLogic') {
       steps {
         // Pass the script title and credentialsId
-        runCoreLogic input: 'script title', envFileCredentialsId: 'credentialsId'
+        runCoreLogic input: 'script title', envFileCredentialsId: 'credentialsId', language: 'python'
         echo ">>> CoreLogic was invoked!"
       }
     }
@@ -87,7 +87,7 @@ Windows is **not supported** at this time due to underlying system dependencies 
 
 Please use a Linux-based Jenkins environment (e.g., Debian or Ubuntu) when configuring or executing this plugin.
 
-Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins.io/).
+Report issues and enhancements in the [Jenkins issue tracker](https://github.com/KWY97/playwright-e2e-test-plugin/issues).
 
 ## Contributing
 
