@@ -66,16 +66,16 @@ public class CoreLogicStep extends Step {
     }
 
     @Extension
-    @Symbol("runCoreLogic")
+    @Symbol("playwrightE2ETest")
     public static class DescriptorImpl extends StepDescriptor {
         @Override
         public String getFunctionName() {
-            return "runCoreLogic";
+            return "playwrightE2ETest";
         }
 
         @Override
         public String getDisplayName() {
-            return "Run Core Logic";
+            return "Run Playwright E2E Test";
         }
 
         @Override

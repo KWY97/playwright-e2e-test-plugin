@@ -1,4 +1,4 @@
-package com.ssafy.core;
+package io.jenkins.plugins.playwright_e2e.core;
 
 import jenkins.model.Jenkins;
 import org.slf4j.Logger;
