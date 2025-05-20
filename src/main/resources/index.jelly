@@ -1,4 +1,4 @@
 <?jelly escape-by-default='true'?>
 <div>
-    TODO
+    This plugin provides natural language–based automated end-to-end testing capabilities using the Microsoft Playwright MCP server and an LLM.
 </div>
