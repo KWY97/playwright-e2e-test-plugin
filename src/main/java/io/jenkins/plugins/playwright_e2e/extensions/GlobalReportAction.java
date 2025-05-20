@@ -59,14 +59,15 @@ public class GlobalReportAction implements RootAction {
             } catch (NumberFormatException e) {
                 buildNum = -1;
             }
-            // Check result.json
-            File scenarioDir = new File(dir, numPart);
-            File jsonFile = new File(scenarioDir, "result.json");
+            // Check for report.html to determine the 'when' date
+            File reportHtmlFile = new File(dir, "report.html");
             Date when;
-            if (jsonFile.exists()) {
-                when = new Date(jsonFile.lastModified());
+            if (reportHtmlFile.exists()) {
+                when = new Date(reportHtmlFile.lastModified());
             } else {
+                // Fallback to directory's last modified time if report.html is not found
                 when = new Date(dir.lastModified());
+                LOGGER.log(Level.INFO, "report.html not found in {0}. Using directory modification time for 'when'.", dir.getAbsolutePath());
             }
             list.add(new BuildEntry(name, buildNum, "Build " + numPart, when));
         }
@@ -79,9 +80,12 @@ public class GlobalReportAction implements RootAction {
      */
     public ReportDetail getReportDetail(@QueryParameter String build,
                                         @QueryParameter String scenario) throws IOException {
+        // 'build' is JOB_NAME_BUILDNUMBER, 'scenario' is the scenario index (e.g., "1", "2")
         String base = Jenkins.get().getRootDir().getAbsolutePath();
         String path = String.join(File.separator, base, "results", build, scenario, "result.json");
+        LOGGER.log(Level.INFO, "Attempting to read report detail from: {0}", path);
         if (!Files.exists(Paths.get(path))) {
+            LOGGER.log(Level.WARNING, "result.json not found at: {0}", path);
             return null;
         }
         String content = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
@@ -101,19 +105,24 @@ public class GlobalReportAction implements RootAction {
      * List of scenarios per build.
      */
     public List<String> getScenarios(@QueryParameter String build) {
-        File dir = new File(Jenkins.get().getRootDir(), "results" + File.separator + build);
-        if (!dir.isDirectory()) {
+        // 'build' parameter is the folder name like "JOB_NAME_BUILDNUMBER"
+        File buildDir = new File(Jenkins.get().getRootDir(), "results" + File.separator + build);
+        if (!buildDir.isDirectory()) {
+            LOGGER.log(Level.WARNING, "Build directory not found or not a directory: {0}", buildDir.getAbsolutePath());
             return Collections.emptyList();
         }
-        File[] subs = dir.listFiles(File::isDirectory);
-        if (subs == null) {
+        // List subdirectories that are named with numbers (scenario indexes)
+        File[] scenarioDirs = buildDir.listFiles(pathname -> pathname.isDirectory() && pathname.getName().matches("\\d+"));
+        if (scenarioDirs == null) {
+            LOGGER.log(Level.WARNING, "Could not list scenario directories in: {0}", buildDir.getAbsolutePath());
             return Collections.emptyList();
         }
         List<String> list = new ArrayList<>();
-        for (File sub : subs) {
-            list.add(sub.getName());
+        for (File scenarioDir : scenarioDirs) {
+            list.add(scenarioDir.getName());
         }
-        Collections.sort(list);
+        // Sort by number to ensure scenarios are listed in order
+        list.sort(Comparator.comparingInt(Integer::parseInt));
         return list;
     }
 
@@ -123,9 +132,12 @@ public class GlobalReportAction implements RootAction {
     public String getScreenshotDataUri(@QueryParameter String build,
                                        @QueryParameter String scenario,
                                        @QueryParameter String file) throws IOException {
+        // 'build' is JOB_NAME_BUILDNUMBER, 'scenario' is the scenario index (e.g., "1"), 'file' is the image filename (e.g., "1.png")
         String base = Jenkins.get().getRootDir().getAbsolutePath();
         String imgPath = String.join(File.separator, base, "results", build, scenario, "screenshots", file);
+        LOGGER.log(Level.INFO, "Attempting to read screenshot from: {0}", imgPath);
         if (!Files.exists(Paths.get(imgPath))) {
+            LOGGER.log(Level.WARNING, "Screenshot not found at: {0}", imgPath);
             return "";
         }
         byte[] bytes = Files.readAllBytes(Paths.get(imgPath));

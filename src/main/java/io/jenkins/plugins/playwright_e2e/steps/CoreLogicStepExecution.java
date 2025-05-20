@@ -2,6 +2,7 @@ package io.jenkins.plugins.playwright_e2e.steps;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.FilePath;
+import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
@@ -24,6 +25,8 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashMap; // Added for environment map
+import java.util.Map; // Added for environment map
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -45,6 +48,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         TaskListener listener = getContext().get(TaskListener.class);
         Run<?, ?> run = getContext().get(Run.class);
+        Launcher launcher = workspace.createLauncher(listener);
 
         // Determine scenario filename (Python: .json, TS: .txt)
         String scenarioNameInput = step.getInput();
@@ -85,15 +89,16 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         listener.getLogger().println("▶ Loading scenario: " + scenarioName);
 
-        // Q4: Change result storage location to build-specific artifact directory
-        File artifactsDir = run.getArtifactsDir();
-        File resultsDir = new File(artifactsDir, "playwright-e2e-results");
-        if (!resultsDir.exists() && !resultsDir.mkdirs()) {
-            // If resultsDir creation fails, it might be better to throw an exception or log a severe error.
-            // Here, only a warning is printed, but stopping execution might be safer in a real scenario.
-            listener.getLogger().println("▶ WARNING: Failed to create results directory in build artifacts: " + resultsDir.getAbsolutePath());
-            // throw new IOException("Failed to create results directory in build artifacts: " + resultsDir.getAbsolutePath());
+        // Q4: Change result storage location to JENKINS_HOME/results for GlobalReportAction
+        File jenkinsResultsDir = new File(Jenkins.get().getRootDir(), "results");
+        // Ensure the main results directory exists
+        if (!jenkinsResultsDir.exists() && !jenkinsResultsDir.mkdirs()) {
+            listener.getLogger().println("▶ WARNING: Failed to create Jenkins global results directory: " + jenkinsResultsDir.getAbsolutePath());
+            // Potentially throw an error here if this directory is critical
         }
+        // The python script will create a subdirectory inside this based on job name and build number.
+        // So, we pass jenkinsResultsDir as the base output directory to the script.
+        File resultsDir = jenkinsResultsDir; // This will be passed as --output_dir to main_logic.py
 
         // Q1 & Q3 Resolved: Read script content and copy to a temporary file in the workspace
         String scenarioContent = new String(Files.readAllBytes(scenarioFile.toPath()), StandardCharsets.UTF_8);
@@ -106,9 +111,9 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
             // Language-specific execution branch (now using tempScenarioFilePath instead of scenarioFile)
             if ("typescript".equalsIgnoreCase(lang)) {
-                runTypeScriptBranch(workspace, listener, tempScenarioFilePath);
+                runTypeScriptBranch(workspace, listener, launcher, tempScenarioFilePath);
             } else {
-                runPythonBranch(workspace, listener, tempScenarioFilePath, run, resultsDir);
+                runPythonBranch(workspace, listener, launcher, tempScenarioFilePath, run, resultsDir);
             }
         } finally {
             if (tempScenarioFilePath.exists()) {
@@ -119,30 +124,53 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         return null;
     }
 
-    private void runPythonBranch(FilePath workspace, TaskListener listener, FilePath scenarioFilePath, Run<?,?> run, File resultsDir) throws Exception { // File scenarioFile -> FilePath scenarioFilePath
+    private void runPythonBranch(FilePath workspace, TaskListener listener, Launcher launcher, FilePath scenarioFilePath, Run<?,?> run, File resultsDir) throws Exception { // File scenarioFile -> FilePath scenarioFilePath
         FilePath pythonDir = workspace.child("resources/python");
         pythonDir.mkdirs();
 
-        FileCredentials envCred = CredentialsProvider.findCredentialById(
-                step.getEnvFileCredentialsId(), FileCredentials.class, run, Collections.emptyList()
-        );
-        if (envCred == null) {
-            listener.error("❌ Could not find Secret File credential for credentialsId='" + step.getEnvFileCredentialsId() + "'.");
-            return;
+        Map<String, String> envVars = new HashMap<>();
+        if (step.getEnvFileCredentialsId() != null && !step.getEnvFileCredentialsId().isEmpty()) {
+            FileCredentials envCred = CredentialsProvider.findCredentialById(
+                    step.getEnvFileCredentialsId(), FileCredentials.class, run, Collections.emptyList()
+            );
+            if (envCred == null) {
+                listener.error("❌ Could not find Secret File credential for credentialsId='" + step.getEnvFileCredentialsId() + "'.");
+                return; // Or throw an exception
+            }
+            try (InputStream is = envCred.getContent();
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.startsWith("#") || line.isEmpty()) {
+                        continue;
+                    }
+                    int P_ = line.indexOf('=');
+                    if (P_ > 0) {
+                        String key = line.substring(0, P_).trim();
+                        String value = line.substring(P_ + 1).trim();
+                        // Remove surrounding quotes if any (optional, depends on .env format)
+                        if (value.startsWith("\"") && value.endsWith("\"") || value.startsWith("'") && value.endsWith("'")) {
+                            value = value.substring(1, value.length() - 1);
+                        }
+                        envVars.put(key, value);
+                    }
+                }
+                listener.getLogger().println("✅ Loaded .env content into environment variables.");
+            } catch (IOException e) {
+                listener.error("❌ Failed to read .env credential: " + e.getMessage());
+                return; // Or throw
+            }
         }
-        byte[] content;
-        try (InputStream is = envCred.getContent()) {
-            content = IOUtils.toByteArray(is);
-        }
-        FilePath envFile = pythonDir.child(".env");
-        envFile.write(new String(content, StandardCharsets.UTF_8), "UTF-8");
-        listener.getLogger().println("✅ Copied .env file to " + envFile.getRemote());
+        // Inject JOB_NAME, it might be overwritten if present in .env but that's fine.
+        envVars.put("JOB_NAME", run.getParent().getFullName());
+
 
         try {
             extractResources("python", pythonDir, listener);
-            cleanDosLineEndings(pythonDir, listener); // Keep this call
+            cleanDosLineEndings(pythonDir, listener, launcher);
             changeMode(pythonDir.child("setup.sh"), listener, 0755); // Keep this call
-            int setupExit = executeShell(pythonDir, listener, "bash setup.sh");
+            int setupExit = executeShell(pythonDir, listener, launcher, "bash setup.sh");
             if (setupExit != 0) {
                 listener.error("❌ setup.sh execution failed (exit=" + setupExit + ")");
                 return;
@@ -150,6 +178,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
             listener.getLogger().println("▶ Executing Python test: main_logic.py (activate venv)");
             String buildNumber = String.valueOf(run.getNumber());
+            String jobName = run.getParent().getFullName(); // Get the full job name
             String activateScript = new File(pythonDir.getRemote(), ".venv/bin/activate").getAbsolutePath();
             String cmd = String.join(" && ",
                     String.format("source %s", activateScript),
@@ -157,57 +186,88 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                             scenarioFilePath.getRemote(), buildNumber, resultsDir.getAbsolutePath() // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     )
             );
-            int testExit = executeShell(pythonDir, listener, cmd);
+            // Pass JOB_NAME to the python script environment
+            Launcher.ProcStarter procStarter = launcher.launch()
+                .cmds("bash", "-c", cmd)
+                .pwd(pythonDir)
+                .stdout(listener)
+                .stderr(listener.getLogger())
+                .envs(envVars) // Inject all loaded environment variables
+                .quiet(true);
+
+            int testExit = procStarter.join();
             listener.getLogger().println("▶ Test finished (exit=" + testExit + ")");
 
             String result = testExit == 0 ? "SUCCESS" : "FAIL";
             run.addAction(new BuildReportAction(step.getInput(), result));
             run.save();
         } finally {
-            listener.getLogger().println("▶ Deleting .env file"); // This was already translated
-            pythonDir.child(".env").delete();
+            // No .env file to delete from workspace anymore
+            listener.getLogger().println("▶ Python script execution finished.");
         }
     }
 
     private void runTypeScriptBranch(
             FilePath workspace,
             TaskListener listener,
+            Launcher launcher,
             FilePath scenarioFilePath // File scenarioFile -> FilePath scenarioFilePath
     ) throws Exception {
         FilePath tsDir = workspace.child("resources/typescript");
         tsDir.mkdirs();
 
-        // Copy .env
-        FileCredentials envCred = CredentialsProvider.findCredentialById(
-                step.getEnvFileCredentialsId(), FileCredentials.class, getContext().get(Run.class), Collections.emptyList()
-        );
-        if (envCred == null) {
-            listener.error("❌ Could not find Secret File credential for credentialsId='" + step.getEnvFileCredentialsId() + "'."); // Already translated
-            return;
+        Map<String, String> envVars = new HashMap<>();
+        if (step.getEnvFileCredentialsId() != null && !step.getEnvFileCredentialsId().isEmpty()) {
+            FileCredentials envCred = CredentialsProvider.findCredentialById(
+                    step.getEnvFileCredentialsId(), FileCredentials.class, getContext().get(Run.class), Collections.emptyList()
+            );
+            if (envCred == null) {
+                listener.error("❌ Could not find Secret File credential for credentialsId='" + step.getEnvFileCredentialsId() + "'.");
+                return;
+            }
+            try (InputStream is = envCred.getContent();
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.startsWith("#") || line.isEmpty()) {
+                        continue;
+                    }
+                    int P_ = line.indexOf('=');
+                    if (P_ > 0) {
+                        String key = line.substring(0, P_).trim();
+                        String value = line.substring(P_ + 1).trim();
+                        if (value.startsWith("\"") && value.endsWith("\"") || value.startsWith("'") && value.endsWith("'")) {
+                            value = value.substring(1, value.length() - 1);
+                        }
+                        envVars.put(key, value);
+                    }
+                }
+                listener.getLogger().println("✅ Loaded .env content into environment variables for TypeScript.");
+            } catch (IOException e) {
+                listener.error("❌ Failed to read .env credential for TypeScript: " + e.getMessage());
+                return;
+            }
         }
-        byte[] content;
-        try (InputStream is = envCred.getContent()) {
-            content = IOUtils.toByteArray(is);
-        }
-        FilePath envFile = tsDir.child(".env");
-        envFile.write(new String(content, StandardCharsets.UTF_8), "UTF-8");
-        listener.getLogger().println("✅ Copied .env file to " + envFile.getRemote()); // Already translated
+        // JOB_NAME might be useful for TS scripts too, though not explicitly used in current python script's folder naming
+        envVars.put("JOB_NAME", getContext().get(Run.class).getParent().getFullName());
+
 
         try {
             // Extract TS resources
-            extractResources("typescript", tsDir, listener); // Keep this call
+            extractResources("typescript", tsDir, listener);
 
             // Install dependencies (including Playwright and playwright-core)
             listener.getLogger().println("▶ Starting npm install"); // Already translated
-            int installExit = executeShell(tsDir, listener, "npm install");
+            int installExit = executeShell(tsDir, listener, launcher, "npm install", envVars); // Pass envVars
             if (installExit != 0) {
-                listener.error("❌ npm install failed (exit=" + installExit + ")"); // Already translated
+                listener.error("❌ npm install failed (exit=" + installExit + ")");
                 return;
             }
-            listener.getLogger().println("▶ Starting additional playwright-core installation"); // Already translated
-            int coreExit = executeShell(tsDir, listener, "npm install playwright-core");
+            listener.getLogger().println("▶ Starting additional playwright-core installation");
+            int coreExit = executeShell(tsDir, listener, launcher, "npm install playwright-core", envVars); // Pass envVars
             if (coreExit != 0) {
-                listener.error("❌ playwright-core installation failed (exit=" + coreExit + ")"); // Already translated
+                listener.error("❌ playwright-core installation failed (exit=" + coreExit + ")");
                 return;
             }
 
@@ -219,15 +279,14 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             listener.getLogger().println("▶ Executing TS script: index.ts (passing scenario file and build number)"); // Already translated
             String cmd = String.format(
                     "npx ts-node index.ts '%s' --build %s",
-                    scenarioFilePath.getRemote(), // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
+                    scenarioFilePath.getRemote(),
                     buildNumber
             );
-            int tsExit = executeShell(tsDir, listener, cmd);
-            listener.getLogger().println("▶ TS execution finished (exit=" + tsExit + ")"); // Already translated
+            int tsExit = executeShell(tsDir, listener, launcher, cmd, envVars); // Pass envVars
+            listener.getLogger().println("▶ TS execution finished (exit=" + tsExit + ")");
         } finally {
-            // Clean up .env
-            listener.getLogger().println("▶ Deleting .env file"); // Already translated
-            tsDir.child(".env").delete();
+            // No .env file to delete from workspace anymore
+            listener.getLogger().println("▶ TypeScript script execution finished.");
         }
     }
 
@@ -280,9 +339,9 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
     }
 
-    private void cleanDosLineEndings(FilePath dir, TaskListener listener) throws IOException, InterruptedException {
+    private void cleanDosLineEndings(FilePath dir, TaskListener listener, Launcher launcher) throws IOException, InterruptedException {
         listener.getLogger().println("▶ Starting CRLF removal"); // Already translated
-        executeShell(dir, listener, "find . -type f -name '*.sh' -exec sed -i 's/\r$//' {} +");
+        executeShell(dir, listener, launcher, "find . -type f -name '*.sh' -exec sed -i 's/\r$//' {} +");
         listener.getLogger().println("▶ CRLF removal complete"); // Already translated
     }
 
@@ -291,18 +350,20 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         file.chmod(mode);
     }
 
-    private int executeShell(FilePath dir, TaskListener listener, String command) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("bash", "-c", command)
-                .directory(new File(dir.getRemote()))
-                .redirectErrorStream(true);
-        Process proc = pb.start();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                listener.getLogger().println(line);
-            }
-        }
-        proc.waitFor();
-        return proc.exitValue();
+    // Overload executeShell to accept envVars
+    private int executeShell(FilePath dir, TaskListener listener, Launcher launcher, String command, Map<String,String> envVars) throws IOException, InterruptedException {
+        Launcher.ProcStarter procStarter = launcher.launch()
+                .cmds("bash", "-c", command)
+                .pwd(dir)
+                .stdout(listener)
+                .stderr(listener.getLogger())
+                .envs(envVars) // Use the passed environment variables
+                .quiet(true);
+        return procStarter.join();
+    }
+
+    // Original executeShell for calls that don't need specific .env content (like cleanDosLineEndings)
+    private int executeShell(FilePath dir, TaskListener listener, Launcher launcher, String command) throws IOException, InterruptedException {
+        return executeShell(dir, listener, launcher, command, Collections.emptyMap()); // Call overloaded version with empty env
     }
 }

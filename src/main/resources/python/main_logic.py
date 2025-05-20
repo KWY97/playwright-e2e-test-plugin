@@ -439,16 +439,21 @@ body {
 async def run_test(
         scenarios: List[dict],
         build_num: int,
-        base_dir: str,
+        base_dir: str, # This is JENKINS_HOME/results
         provider: str,
         llm_model: str,
         api_key: str,
 ):
     test_start = datetime.now()
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    test_id = f"{timestamp}_report_{build_num}"
-    output_dir = os.path.join(base_dir, test_id)
+    # Get JOB_NAME from environment variable, replace slashes for directory safety
+    job_name = os.getenv("JOB_NAME", "UNKNOWN_JOB").replace("/", "_")
+    # Create folder name that GlobalReportAction can parse
+    # Example: MY_JOB_123 or FOLDER_MY_JOB_123
+    folder_name = f"{job_name}_{build_num}"
+    output_dir = os.path.join(base_dir, folder_name) # e.g., JENKINS_HOME/results/MY_JOB_123
     os.makedirs(output_dir, exist_ok=True)
+    # test_id is used for screenshot URLs, should match the folder_name for consistency
+    test_id = folder_name
 
     # Select LLM
     if provider == "anthropic":
