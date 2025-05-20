@@ -67,7 +67,7 @@ pipeline {
     stage('CoreLogic') {
       steps {
         // Pass the script title and credentialsId
-        runCoreLogic input: 'script title', envFileCredentialsId: 'credentialsId', language: 'python'
+        playwrightE2ETest input: 'script title', envFileCredentialsId: 'credentialsId', language: 'python'
         echo ">>> CoreLogic was invoked!"
       }
     }

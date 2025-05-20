@@ -2,6 +2,7 @@ package io.jenkins.plugins.playwright_e2e.steps;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.FilePath;
+import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
@@ -45,6 +46,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
         TaskListener listener = getContext().get(TaskListener.class);
         Run<?, ?> run = getContext().get(Run.class);
+        Launcher launcher = workspace.createLauncher(listener);
 
         // Determine scenario filename (Python: .json, TS: .txt)
         String scenarioNameInput = step.getInput();
@@ -106,9 +108,9 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
             // Language-specific execution branch (now using tempScenarioFilePath instead of scenarioFile)
             if ("typescript".equalsIgnoreCase(lang)) {
-                runTypeScriptBranch(workspace, listener, tempScenarioFilePath);
+                runTypeScriptBranch(workspace, listener, launcher, tempScenarioFilePath);
             } else {
-                runPythonBranch(workspace, listener, tempScenarioFilePath, run, resultsDir);
+                runPythonBranch(workspace, listener, launcher, tempScenarioFilePath, run, resultsDir);
             }
         } finally {
             if (tempScenarioFilePath.exists()) {
@@ -119,7 +121,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         return null;
     }
 
-    private void runPythonBranch(FilePath workspace, TaskListener listener, FilePath scenarioFilePath, Run<?,?> run, File resultsDir) throws Exception { // File scenarioFile -> FilePath scenarioFilePath
+    private void runPythonBranch(FilePath workspace, TaskListener listener, Launcher launcher, FilePath scenarioFilePath, Run<?,?> run, File resultsDir) throws Exception { // File scenarioFile -> FilePath scenarioFilePath
         FilePath pythonDir = workspace.child("resources/python");
         pythonDir.mkdirs();
 
@@ -140,9 +142,9 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
         try {
             extractResources("python", pythonDir, listener);
-            cleanDosLineEndings(pythonDir, listener); // Keep this call
+            cleanDosLineEndings(pythonDir, listener, launcher); // Keep this call
             changeMode(pythonDir.child("setup.sh"), listener, 0755); // Keep this call
-            int setupExit = executeShell(pythonDir, listener, "bash setup.sh");
+            int setupExit = executeShell(pythonDir, listener, launcher, "bash setup.sh");
             if (setupExit != 0) {
                 listener.error("❌ setup.sh execution failed (exit=" + setupExit + ")");
                 return;
@@ -157,7 +159,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                             scenarioFilePath.getRemote(), buildNumber, resultsDir.getAbsolutePath() // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     )
             );
-            int testExit = executeShell(pythonDir, listener, cmd);
+            int testExit = executeShell(pythonDir, listener, launcher, cmd);
             listener.getLogger().println("▶ Test finished (exit=" + testExit + ")");
 
             String result = testExit == 0 ? "SUCCESS" : "FAIL";
@@ -172,6 +174,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
     private void runTypeScriptBranch(
             FilePath workspace,
             TaskListener listener,
+            Launcher launcher,
             FilePath scenarioFilePath // File scenarioFile -> FilePath scenarioFilePath
     ) throws Exception {
         FilePath tsDir = workspace.child("resources/typescript");
@@ -199,13 +202,13 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
 
             // Install dependencies (including Playwright and playwright-core)
             listener.getLogger().println("▶ Starting npm install"); // Already translated
-            int installExit = executeShell(tsDir, listener, "npm install");
+            int installExit = executeShell(tsDir, listener, launcher, "npm install");
             if (installExit != 0) {
                 listener.error("❌ npm install failed (exit=" + installExit + ")"); // Already translated
                 return;
             }
             listener.getLogger().println("▶ Starting additional playwright-core installation"); // Already translated
-            int coreExit = executeShell(tsDir, listener, "npm install playwright-core");
+            int coreExit = executeShell(tsDir, listener, launcher, "npm install playwright-core");
             if (coreExit != 0) {
                 listener.error("❌ playwright-core installation failed (exit=" + coreExit + ")"); // Already translated
                 return;
@@ -222,7 +225,7 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
                     scenarioFilePath.getRemote(), // scenarioFile.getAbsolutePath() -> scenarioFilePath.getRemote()
                     buildNumber
             );
-            int tsExit = executeShell(tsDir, listener, cmd);
+            int tsExit = executeShell(tsDir, listener, launcher, cmd);
             listener.getLogger().println("▶ TS execution finished (exit=" + tsExit + ")"); // Already translated
         } finally {
             // Clean up .env
@@ -280,9 +283,9 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         }
     }
 
-    private void cleanDosLineEndings(FilePath dir, TaskListener listener) throws IOException, InterruptedException {
+    private void cleanDosLineEndings(FilePath dir, TaskListener listener, Launcher launcher) throws IOException, InterruptedException {
         listener.getLogger().println("▶ Starting CRLF removal"); // Already translated
-        executeShell(dir, listener, "find . -type f -name '*.sh' -exec sed -i 's/\r$//' {} +");
+        executeShell(dir, listener, launcher, "find . -type f -name '*.sh' -exec sed -i 's/\r$//' {} +");
         listener.getLogger().println("▶ CRLF removal complete"); // Already translated
     }
 
@@ -291,18 +294,14 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         file.chmod(mode);
     }
 
-    private int executeShell(FilePath dir, TaskListener listener, String command) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("bash", "-c", command)
-                .directory(new File(dir.getRemote()))
-                .redirectErrorStream(true);
-        Process proc = pb.start();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                listener.getLogger().println(line);
-            }
-        }
-        proc.waitFor();
-        return proc.exitValue();
+    private int executeShell(FilePath dir, TaskListener listener, Launcher launcher, String command) throws IOException, InterruptedException {
+        Launcher.ProcStarter procStarter = launcher.launch()
+                .cmds("bash", "-c", command)
+                .pwd(dir)
+                .stdout(listener)
+                .stderr(listener.getLogger())
+                .quiet(true); // Do not print commands to the console
+
+        return procStarter.join();
     }
 }
