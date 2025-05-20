@@ -1,6 +1,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry title="Scenario Input" field="input">
+    <f:entry title="Script Path (in workspace)" field="scriptPath"
+             help="Path to the scenario file (e.g., .json or .txt) relative to the workspace root. Example: tests/scenarios/my_test.json">
         <f:textbox />
     </f:entry>
     <f:entry title="Environment File Credentials ID" field="envFileCredentialsId"

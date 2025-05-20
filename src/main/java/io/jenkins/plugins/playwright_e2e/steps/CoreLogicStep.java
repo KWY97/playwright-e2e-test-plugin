@@ -26,20 +26,20 @@ import java.util.Collections;
 import java.util.Set;
 
 public class CoreLogicStep extends Step {
-    private final String input;
+    private final String scriptPath; // Changed from 'input'
     /** ID of the File Credential where the .env file is stored */
     private String envFileCredentialsId;
     /** Scripting language to execute (python | typescript) */
     private String language;
 
     @DataBoundConstructor
-    public CoreLogicStep(String input) {
-        this.input = input;
+    public CoreLogicStep(String scriptPath) { // Changed from 'input'
+        this.scriptPath = scriptPath; // Changed from 'input'
         this.language = "python"; // Default value
     }
 
-    public String getInput() {
-        return input;
+    public String getScriptPath() { // Changed from 'getInput'
+        return scriptPath; // Changed from 'input'
     }
 
     public String getEnvFileCredentialsId() {

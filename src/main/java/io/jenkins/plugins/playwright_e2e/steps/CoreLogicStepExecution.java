@@ -50,44 +50,27 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         Run<?, ?> run = getContext().get(Run.class);
         Launcher launcher = workspace.createLauncher(listener);
 
-        // Determine scenario filename (Python: .json, TS: .txt)
-        String scenarioNameInput = step.getInput();
-
-        // Q2: Prevent Path Traversal - Validate filename
-        if (scenarioNameInput.contains("/") || scenarioNameInput.contains("\\") || scenarioNameInput.contains("..")) {
-            throw new IllegalArgumentException("Invalid scenario filename. Cannot contain path characters: " + scenarioNameInput);
+        // Get script path from workspace
+        String scriptPath = step.getScriptPath();
+        if (scriptPath == null || scriptPath.isEmpty()) {
+            throw new IllegalArgumentException("Script path cannot be empty.");
         }
 
-        String scenarioName = scenarioNameInput;
+        // The scriptPath is relative to the workspace.
+        FilePath scenarioFilePathInWorkspace = workspace.child(scriptPath);
+
+        if (!scenarioFilePathInWorkspace.exists()) {
+            throw new FileNotFoundException("Scenario file does not exist in workspace: " + scriptPath);
+        }
+        listener.getLogger().println("▶ Loading scenario from workspace: " + scriptPath);
+
         String lang = step.getLanguage() != null ? step.getLanguage() : "python";
-        if ("typescript".equalsIgnoreCase(lang)) {
-            if (!scenarioName.endsWith(".txt")) scenarioName += ".txt";
-        } else {
-            if (!scenarioName.endsWith(".json")) scenarioName += ".json";
+        // Validate file extension based on language (optional, but good practice)
+        if ("typescript".equalsIgnoreCase(lang) && !scriptPath.endsWith(".txt") && !scriptPath.endsWith(".ts")) { // Allow .ts as well
+            listener.getLogger().println("▶ WARNING: TypeScript scenario file typically ends with .txt or .ts: " + scriptPath);
+        } else if ("python".equalsIgnoreCase(lang) && !scriptPath.endsWith(".json")) {
+            listener.getLogger().println("▶ WARNING: Python scenario file typically ends with .json: " + scriptPath);
         }
-
-        File jenkinsHome = Jenkins.get().getRootDir();
-        File scriptsDir = new File(jenkinsHome, "scripts");
-        File scenarioFile = new File(scriptsDir, scenarioName);
-
-        // Q2: Prevent Path Traversal - Normalize and validate path
-        try {
-            String canonicalScriptsDir = scriptsDir.getCanonicalPath();
-            String canonicalScenarioFile = scenarioFile.getCanonicalPath();
-            // Ensure scenarioFile is within scriptsDir and also check for symlink issues by ensuring it's a direct child.
-            // A simple startsWith check might be vulnerable if scriptsDir is a symlink itself or scenarioName contains tricky sequences.
-            // However, for a basic check, startsWith is a first step. More robust validation might involve checking parent directories.
-            if (!canonicalScenarioFile.startsWith(canonicalScriptsDir + File.separator) || !scenarioFile.getParentFile().getCanonicalPath().equals(canonicalScriptsDir)) {
-                 throw new IllegalArgumentException("Invalid scenario file path. Attempt to access outside allowed directory: " + scenarioFile.getPath());
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Error validating scenario file path: " + scenarioFile.getPath(), e);
-        }
-
-        if (!scenarioFile.exists()) {
-            throw new IllegalArgumentException("Scenario file does not exist: " + scenarioFile);
-        }
-        listener.getLogger().println("▶ Loading scenario: " + scenarioName);
 
         // Q4: Change result storage location to JENKINS_HOME/results for GlobalReportAction
         File jenkinsResultsDir = new File(Jenkins.get().getRootDir(), "results");
@@ -100,25 +83,28 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
         // So, we pass jenkinsResultsDir as the base output directory to the script.
         File resultsDir = jenkinsResultsDir; // This will be passed as --output_dir to main_logic.py
 
-        // Q1 & Q3 Resolved: Read script content and copy to a temporary file in the workspace
-        String scenarioContent = new String(Files.readAllBytes(scenarioFile.toPath()), StandardCharsets.UTF_8);
-        String tempScenarioFileName = "temp_scenario_" + System.currentTimeMillis() + ("typescript".equalsIgnoreCase(lang) ? ".txt" : ".json");
-        FilePath tempScenarioFilePath = workspace.child(tempScenarioFileName);
-        
-        try {
-            tempScenarioFilePath.write(scenarioContent, StandardCharsets.UTF_8.name());
-            listener.getLogger().println("▶ Copied scenario file to workspace: " + tempScenarioFilePath.getRemote());
+        // Read script content directly from workspace path
+        String scenarioContent = scenarioFilePathInWorkspace.readToString();
+        // Create a temporary file in the workspace to pass to the script,
+        // as the script might still expect a file path it can directly access.
+        // This temporary file will be cleaned up.
+        String tempScenarioFileName = "temp_scenario_ws_" + System.currentTimeMillis() + (scriptPath.contains(".") ? scriptPath.substring(scriptPath.lastIndexOf('.')) : ".tmp");
+        FilePath tempScriptExecutionPath = workspace.child(tempScenarioFileName);
 
-            // Language-specific execution branch (now using tempScenarioFilePath instead of scenarioFile)
+        try {
+            tempScriptExecutionPath.write(scenarioContent, StandardCharsets.UTF_8.name());
+            listener.getLogger().println("▶ Copied workspace scenario to temporary execution file: " + tempScriptExecutionPath.getRemote());
+
+            // Language-specific execution branch
             if ("typescript".equalsIgnoreCase(lang)) {
-                runTypeScriptBranch(workspace, listener, launcher, tempScenarioFilePath);
+                runTypeScriptBranch(workspace, listener, launcher, tempScriptExecutionPath);
             } else {
-                runPythonBranch(workspace, listener, launcher, tempScenarioFilePath, run, resultsDir);
+                runPythonBranch(workspace, listener, launcher, tempScriptExecutionPath, run, resultsDir);
             }
         } finally {
-            if (tempScenarioFilePath.exists()) {
-                tempScenarioFilePath.delete();
-                listener.getLogger().println("▶ Deleted temporary scenario file: " + tempScenarioFilePath.getRemote());
+            if (tempScriptExecutionPath.exists()) {
+                tempScriptExecutionPath.delete();
+                listener.getLogger().println("▶ Deleted temporary execution file: " + tempScriptExecutionPath.getRemote());
             }
         }
         return null;
@@ -198,8 +184,8 @@ public class CoreLogicStepExecution extends SynchronousNonBlockingStepExecution<
             int testExit = procStarter.join();
             listener.getLogger().println("▶ Test finished (exit=" + testExit + ")");
 
-            String result = testExit == 0 ? "SUCCESS" : "FAIL";
-            run.addAction(new BuildReportAction(step.getInput(), result));
+            String resultText = testExit == 0 ? "SUCCESS" : "FAIL";
+            run.addAction(new BuildReportAction(step.getScriptPath(), resultText)); // Use getScriptPath()
             run.save();
         } finally {
             // No .env file to delete from workspace anymore
