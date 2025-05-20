@@ -1,0 +1,15 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="Scenario Input" field="input">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Environment File Credentials ID" field="envFileCredentialsId"
+             help="/plugin/plain-credentials/help-fileCredentials.html">
+        <f:textbox />
+        <!-- TODO: Ideally, this should be a credential picker e.g. <c:select/> -->
+    </f:entry>
+    <f:entry title="Scripting Language" field="language">
+        <f:textbox default="python" />
+        <!-- TODO: This could be a select dropdown if a doFillLanguageItems method is added to CoreLogicStep.DescriptorImpl (e.g., Python, TypeScript) -->
+    </f:entry>
+</j:jelly>
