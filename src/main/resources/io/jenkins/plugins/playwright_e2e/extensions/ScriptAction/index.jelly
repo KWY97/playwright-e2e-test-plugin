@@ -6,7 +6,9 @@
             <!-- Button to create a new script: Navigates to /jenkins/scripts/input -->
             <a href="input" class="jenkins-button jenkins-button--primary"><l:icon src="symbol-add"/> New Script</a>
             <table class="jenkins-table">
-                <tr><th>Title</th><th>Modified</th></tr>
+                <thead>
+                    <tr><th>Title</th><th>Modified</th></tr>
+                </thead>
                 <!-- Iterate over the ScriptEntry list in it.scripts -->
                 <j:forEach items="${it.scripts}" var="s">
                     <tr>
