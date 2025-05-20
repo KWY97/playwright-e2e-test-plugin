@@ -18,12 +18,16 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.Base64;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
 @Extension
 public class GlobalReportAction implements RootAction {
+    private static final Logger LOGGER = Logger.getLogger(GlobalReportAction.class.getName());
+
     @Override public String getIconFileName() { return "clipboard.png"; }
     @Override public String getDisplayName()    { return "MCP Reports"; }
     @Override public String getUrlName()        { return "mcp-reports"; }
@@ -138,9 +142,8 @@ public class GlobalReportAction implements RootAction {
                 "results" + File.separator + build + File.separator + "report.html"
         );
         // ── Debugging Log ─────────────────────────────
-        System.out.println("[GlobalReportAction] Looking for report at: "
-                + html.getAbsolutePath()
-                + " (exists=" + html.exists() + ", readable=" + html.canRead() + ")");
+        LOGGER.log(Level.INFO, "[GlobalReportAction] Looking for report at: {0} (exists={1}, readable={2})",
+                new Object[]{html.getAbsolutePath(), html.exists(), html.canRead()});
         // ─────────────────────────────────────────────
         if (!html.exists()) {
             return HttpResponses.error(404, "report.html not found for build: " + build);
