@@ -16,9 +16,14 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import hudson.util.HttpResponses;
 
 @Extension
 public class ScriptAction implements RootAction {
+    private static final Logger LOGGER = Logger.getLogger(ScriptAction.class.getName());
+
     @Override public String getIconFileName() { return "clipboard.png"; }
     @Override public String getDisplayName()    { return "Scripts"; }
     @Override public String getUrlName()        { return "scripts"; }
@@ -92,5 +97,32 @@ public class ScriptAction implements RootAction {
 
     private String sanitize(String s) {
         return s.replaceAll("[\\\\/:*?\"<>|]", "_");
+    }
+
+    @RequirePOST
+    public HttpResponse doDeleteScript(@QueryParameter String scriptName) throws IOException {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+
+        if (scriptName == null || scriptName.isEmpty() || scriptName.contains("..") || scriptName.contains("/") || scriptName.contains("\\")) {
+            LOGGER.log(Level.WARNING, "Invalid script name for deletion: {0}", scriptName);
+            return HttpResponses.error(400, "Invalid script name.");
+        }
+
+        File scriptFile = new File(getDir(), scriptName);
+        // Double check it's within the script directory and is a .json file
+        if (!scriptFile.exists() || !scriptFile.isFile() || !scriptFile.getName().endsWith(".json")
+                || !scriptFile.getCanonicalPath().startsWith(getDir().getCanonicalPath() + File.separator)) {
+            LOGGER.log(Level.WARNING, "Script file not found or invalid for deletion: {0}", scriptName);
+            return HttpResponses.error(404, "Script not found or invalid.");
+        }
+
+        LOGGER.log(Level.INFO, "Attempting to delete script: {0}", scriptFile.getAbsolutePath());
+        if (scriptFile.delete()) {
+            LOGGER.log(Level.INFO, "Successfully deleted script: {0}", scriptName);
+            return HttpResponses.ok();
+        } else {
+            LOGGER.log(Level.SEVERE, "Failed to delete script: {0}", scriptName);
+            return HttpResponses.error(500, "Failed to delete script.");
+        }
     }
 }
