@@ -4,7 +4,9 @@
         <l:main-panel>
             <h1>MCP Reports</h1>
             <table class="jenkins-table">
-                <tr><th>Build</th><th>Execution Time</th></tr>
+                <thead>
+                    <tr><th>Build</th><th>Execution Time</th></tr>
+                </thead>
                 <j:forEach items="${it.builds}" var="b">
                     <tr>
                         <td>
