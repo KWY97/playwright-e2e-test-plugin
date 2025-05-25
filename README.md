@@ -61,21 +61,22 @@ LLM_API_KEY={API key}
 To use this plugin securely and effectively, you need to configure two types of credentials in Jenkins:
 
 1.  **Git Repository Credentials**: To allow Jenkins to check out your source code and test scripts from your Git repository.
-    -   Go to Jenkins > Manage Jenkins > Credentials > System > Global credentials (unrestricted).
-    -   Click "Add Credentials".
-    -   **Kind**: Choose "Username with password" (for HTTPS URLs with a username and password/Personal Access Token) or "SSH Username with private key" (for SSH URLs).
-    -   Fill in the required details (Username, Password/Token or Private Key).
-    -   **ID**: Enter a descriptive ID (e.g., `your-git-credentials-id`). You will use this ID in your Jenkinsfile.
-    -   Click "OK" or "Create".
+
+    - Go to Jenkins > Manage Jenkins > Credentials > System > Global credentials (unrestricted).
+    - Click "Add Credentials".
+    - **Kind**: Choose "Username with password" (for HTTPS URLs with a username and password/Personal Access Token) or "SSH Username with private key" (for SSH URLs).
+    - Fill in the required details (Username, Password/Token or Private Key).
+    - **ID**: Enter a descriptive ID (e.g., `your-git-credentials-id`). You will use this ID in your Jenkinsfile.
+    - Click "OK" or "Create".
 
 2.  **Environment Variables Credential (`.env` content)**: To securely store the content of your `.env` file (which includes `LLM_PROVIDER`, `LLM_MODEL`, and `LLM_API_KEY`).
-    -   Go to Jenkins > Manage Jenkins > Credentials > System > Global credentials (unrestricted).
-    -   Click "Add Credentials".
-    -   **Kind**: Choose "Secret file".
-    -   **File**: Click "Choose File" and upload your `.env` file, or select "Or enter directly" and paste the content of your `.env` file.
-    -   **ID**: Enter a descriptive ID (e.g., `your-env-file-credential-id`). You will use this ID in the `playwrightE2ETest` step.
-    -   **Description**: (Optional) Add a description.
-    -   Click "OK" or "Create".
+    - Go to Jenkins > Manage Jenkins > Credentials > System > Global credentials (unrestricted).
+    - Click "Add Credentials".
+    - **Kind**: Choose "Secret file".
+    - **File**: Click "Choose File" and upload your `.env` file, or select "Or enter directly" and paste the content of your `.env` file.
+    - **ID**: Enter a descriptive ID (e.g., `your-env-file-credential-id`). You will use this ID in the `playwrightE2ETest` step.
+    - **Description**: (Optional) Add a description.
+    - Click "OK" or "Create".
 
 ### How to Use the Plugin
 
@@ -91,8 +92,8 @@ pipeline {
       steps {
         // Checkout your source code and test scripts from Git
         // Replace with your actual Git repository URL, branch, and credentials
-        git branch: 'main', 
-            credentialsId: 'your-git-credentials-id', 
+        git branch: 'main',
+            credentialsId: 'your-git-credentials-id',
             url: 'https://your-git-repository-url.com/your-project.git'
         echo "Source code and test scripts checked out."
       }
@@ -101,7 +102,7 @@ pipeline {
       steps {
         // Execute the Playwright E2E test by specifying the script path in your workspace
         // and the ID of the Jenkins credential storing your .env file content.
-        playwrightE2ETest scriptPath: 'path/to/your/scenario.json', // Example: 'tests/e2e/login_test.json'
+        playwrightE2ETest scriptPath: 'path/to/your/scenario.json', // Example: 'tests/e2e/scenario.json'
                          envFileCredentialsId: 'your-env-file-credential-id', // Credential ID for .env content
                          language: 'python' // 'python' or 'typescript' (defaults to 'python')
         echo ">>> Playwright E2E Test was invoked!"
@@ -111,15 +112,35 @@ pipeline {
 }
 ```
 
-  **Explanation:**
-  - **`stage('Checkout Code')`**: This stage checks out your project's source code, including your Playwright E2E test scenario files, from your Git repository into the Jenkins workspace.
-    - `branch`: The Git branch to checkout.
-    - `credentialsId`: The ID of the Jenkins credential used to access your Git repository.
-    - `url`: The URL of your Git repository.
-  - **`stage('Run Playwright E2E Test')`**: This stage executes your E2E test.
-    - `scriptPath`: The path to your test scenario file (e.g., `.json` for Python, `.txt` or `.ts` for TypeScript) **relative to the root of your checked-out Git repository (Jenkins workspace)**.
-    - `envFileCredentialsId`: The ID of the Jenkins "Secret file" credential that stores the content of your `.env` file (containing `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`).
-    - `language`: (Optional) The scripting language of your scenario. Can be `python` (default) or `typescript`.
+- scenario.json Example
+
+```
+{
+  "title": "Login Test",
+  "steps": [
+    "Go to 'Your URL(ex: https://github.com/)'",
+    "Click the 'Login' button.",
+    "Click the 'Username' input field.",
+    "Type 'ssafy'.",
+    "Click the 'Password' input field.",
+    "Type 'ssafy'.",
+    "Click the 'Login' button.",
+    "Take a snapshot of the Free Board page.",
+    "Take a screenshot."
+  ]
+}
+```
+
+**Explanation:**
+
+- **`stage('Checkout Code')`**: This stage checks out your project's source code, including your Playwright E2E test scenario files, from your Git repository into the Jenkins workspace.
+  - `branch`: The Git branch to checkout.
+  - `credentialsId`: The ID of the Jenkins credential used to access your Git repository.
+  - `url`: The URL of your Git repository.
+- **`stage('Run Playwright E2E Test')`**: This stage executes your E2E test.
+  - `scriptPath`: The path to your test scenario file (e.g., `.json` for Python, `.txt` or `.ts` for TypeScript) **relative to the root of your checked-out Git repository (Jenkins workspace)**.
+  - `envFileCredentialsId`: The ID of the Jenkins "Secret file" credential that stores the content of your `.env` file (containing `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`).
+  - `language`: (Optional) The scripting language of your scenario. Can be `python` (default) or `typescript`.
 
 ## Issues
 
