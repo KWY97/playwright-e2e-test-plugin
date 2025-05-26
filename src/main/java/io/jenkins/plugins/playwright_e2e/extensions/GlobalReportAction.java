@@ -149,6 +149,7 @@ public class GlobalReportAction implements RootAction {
      * URL: /jenkins/mcp-reports/report?build=<buildFolderName>
      */
     public HttpResponse doReport(@QueryParameter String build) throws IOException {
+        Jenkins.get().checkPermission(Jenkins.READ); // Permission Check
         File html = new File(
                 Jenkins.get().getRootDir(),
                 "results" + File.separator + build + File.separator + "report.html"
@@ -172,13 +173,41 @@ public class GlobalReportAction implements RootAction {
             @QueryParameter("scenario") String scenario,
             @QueryParameter("file") String fileName
     ) throws IOException {
-        File img = new File(
-                Jenkins.get().getRootDir(),
-                "results/" + build + "/" + scenario + "/screenshots/" + fileName
-        );
+        Jenkins.get().checkPermission(Jenkins.READ); // Permission Check
+        // Path Traversal Vulnerability Check for fileName
+        if (fileName == null || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+            LOGGER.log(Level.WARNING, "Invalid characters in screenshot fileName: {0}", fileName);
+            return HttpResponses.error(400, "Invalid screenshot file name.");
+        }
+
+        // Basic validation for build and scenario parameters (alphanumeric, underscore, hyphen)
+        // This is a simple check, more robust validation might be needed depending on expected format.
+        String safePattern = "^[a-zA-Z0-9_\\-]+$";
+        if (build == null || !build.matches(safePattern)) {
+            LOGGER.log(Level.WARNING, "Invalid characters in build parameter: {0}", build);
+            return HttpResponses.error(400, "Invalid build parameter.");
+        }
+        if (scenario == null || !scenario.matches("^\\d+$")) { // Scenario should be a number
+            LOGGER.log(Level.WARNING, "Invalid characters in scenario parameter: {0}", scenario);
+            return HttpResponses.error(400, "Invalid scenario parameter.");
+        }
+
+        File jenkinsRoot = Jenkins.get().getRootDir();
+        File expectedScreenshotsDir = new File(jenkinsRoot, "results/" + build + "/" + scenario + "/screenshots");
+        File img = new File(expectedScreenshotsDir, fileName);
+
+        // Verify that the canonical path of the image is within the expected screenshots directory
+        if (!img.getCanonicalPath().startsWith(expectedScreenshotsDir.getCanonicalPath() + File.separator)) {
+            LOGGER.log(Level.SEVERE, "Path traversal attempt detected for screenshot: {0}", img.getPath());
+            return HttpResponses.error(403, "Access to the requested screenshot is forbidden.");
+        }
+
         if (!img.isFile()) {
+            LOGGER.log(Level.WARNING, "Screenshot not found or not a file: {0}", img.getAbsolutePath());
             return HttpResponses.error(404, "Screenshot not found");
         }
+        
+        LOGGER.log(Level.INFO, "Serving screenshot: {0}", img.getAbsolutePath());
         return HttpResponses.staticResource(img);
     }
 }
