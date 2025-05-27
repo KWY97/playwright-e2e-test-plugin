@@ -10,6 +10,7 @@ import jenkins.model.Jenkins;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import hudson.util.HttpResponses;
+import org.kohsuke.stapler.verb.GET; // Import @GET annotation
 
 import java.io.File;
 import java.io.IOException;
@@ -143,11 +144,12 @@ public class GlobalReportAction implements RootAction {
         byte[] bytes = Files.readAllBytes(Paths.get(imgPath));
         return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
     }
-
+    
     /**
      * Stapler endpoint that serves the report.html file directly.
      * URL: /jenkins/mcp-reports/report?build=<buildFolderName>
      */
+    @GET // Explicitly mark as GET handler
     public HttpResponse doReport(@QueryParameter String build) throws IOException {
         Jenkins.get().checkPermission(Jenkins.READ); // Permission Check
         File html = new File(
@@ -168,6 +170,7 @@ public class GlobalReportAction implements RootAction {
      * Serves screenshot images.
      * URL: /mcp-reports/screenshot?build={build}&scenario={scenario}&file={file}
      */
+    @GET // Explicitly mark as GET handler
     public HttpResponse doScreenshot(
             @QueryParameter("build") String build,
             @QueryParameter("scenario") String scenario,
